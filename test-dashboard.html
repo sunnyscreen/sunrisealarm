@@ -259,7 +259,7 @@
         <div class="test-section">
             <h2>Unit Tests (Jest)</h2>
             <div class="button-group">
-                <a href="/test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                <a href="test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
             </div>
             <div id="jest-results" class="test-results">
                 <div class="loading">Loading unit test results...</div>
@@ -269,7 +269,7 @@
         <div class="test-section">
             <h2>E2E Tests (Playwright)</h2>
             <div class="button-group">
-                <a href="/test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                <a href="test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
             </div>
             <div id="playwright-results" class="test-results">
                 <div class="loading">Loading E2E test results...</div>
@@ -284,13 +284,13 @@
         async function loadTestResults() {
             try {
                 // Load Jest results
-                const jestResponse = await fetch('/test-results/jest-results.json');
+                const jestResponse = await fetch('test-results/jest-results.json');
                 if (jestResponse.ok) {
                     const jestData = await jestResponse.json();
                     displayJestResults(jestData);
                 } else {
                     document.getElementById('jest-results').innerHTML =
-                        '<div class="no-data">No unit test results available. Run <code>npm test</code> to generate results.</div>';
+                        '<div class="no-data">No unit test results available yet.</div>';
                 }
             } catch (error) {
                 document.getElementById('jest-results').innerHTML =
@@ -299,22 +299,22 @@
 
             try {
                 // Load Playwright results
-                const playwrightResponse = await fetch('/test-results/playwright-results.json');
+                const playwrightResponse = await fetch('test-results/playwright-results.json');
                 if (playwrightResponse.ok) {
                     const playwrightData = await playwrightResponse.json();
                     displayPlaywrightResults(playwrightData);
                 } else {
                     document.getElementById('playwright-results').innerHTML =
-                        '<div class="no-data">No E2E test results available. Run <code>npm run test:e2e</code> to generate results.</div>';
+                        '<div class="no-data">No E2E test results available yet.</div>';
                 }
             } catch (error) {
                 document.getElementById('playwright-results').innerHTML =
                     '<div class="error-message">Failed to load E2E test results: ' + error.message + '</div>';
             }
 
-            // Try to load videos
+            // Try to load videos list
             try {
-                const videosResponse = await fetch('/api/videos');
+                const videosResponse = await fetch('test-results/videos.json');
                 if (videosResponse.ok) {
                     const videos = await videosResponse.json();
                     displayVideos(videos);
