@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard - Sunnyscreen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-value.success {
+            color: #10b981;
+        }
+
+        .stat-value.error {
+            color: #ef4444;
+        }
+
+        .stat-value.warning {
+            color: #f59e0b;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .test-section h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #764ba2;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #653a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(118, 75, 162, 0.3);
+        }
+
+        .test-results {
+            margin-top: 1.5rem;
+        }
+
+        .test-item {
+            padding: 1rem;
+            border-left: 4px solid #e5e7eb;
+            margin-bottom: 1rem;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+
+        .test-item.passed {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .test-item.failed {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .test-item-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+
+        .test-item-duration {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .video-card {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .video-card h4 {
+            margin-bottom: 0.75rem;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .video-card video {
+            width: 100%;
+            border-radius: 4px;
+            background: #000;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+            margin-top: 1rem;
+        }
+
+        .timestamp {
+            color: #6b7280;
+            font-size: 0.875rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Dashboard</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Tests</h3>
+                <div class="stat-value" id="total-tests">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Passed</h3>
+                <div class="stat-value success" id="passed-tests">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Failed</h3>
+                <div class="stat-value error" id="failed-tests">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Duration</h3>
+                <div class="stat-value" id="duration">-</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Unit Tests (Jest)</h2>
+            <div class="button-group">
+                <a href="/test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
+            </div>
+            <div id="jest-results" class="test-results">
+                <div class="loading">Loading unit test results...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>E2E Tests (Playwright)</h2>
+            <div class="button-group">
+                <a href="/test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+            </div>
+            <div id="playwright-results" class="test-results">
+                <div class="loading">Loading E2E test results...</div>
+            </div>
+            <div id="videos-section"></div>
+        </div>
+
+        <div class="timestamp" id="last-updated"></div>
+    </div>
+
+    <script>
+        async function loadTestResults() {
+            try {
+                // Load Jest results
+                const jestResponse = await fetch('/test-results/jest-results.json');
+                if (jestResponse.ok) {
+                    const jestData = await jestResponse.json();
+                    displayJestResults(jestData);
+                } else {
+                    document.getElementById('jest-results').innerHTML =
+                        '<div class="no-data">No unit test results available. Run <code>npm test</code> to generate results.</div>';
+                }
+            } catch (error) {
+                document.getElementById('jest-results').innerHTML =
+                    '<div class="error-message">Failed to load unit test results: ' + error.message + '</div>';
+            }
+
+            try {
+                // Load Playwright results
+                const playwrightResponse = await fetch('/test-results/playwright-results.json');
+                if (playwrightResponse.ok) {
+                    const playwrightData = await playwrightResponse.json();
+                    displayPlaywrightResults(playwrightData);
+                } else {
+                    document.getElementById('playwright-results').innerHTML =
+                        '<div class="no-data">No E2E test results available. Run <code>npm run test:e2e</code> to generate results.</div>';
+                }
+            } catch (error) {
+                document.getElementById('playwright-results').innerHTML =
+                    '<div class="error-message">Failed to load E2E test results: ' + error.message + '</div>';
+            }
+
+            // Try to load videos
+            try {
+                const videosResponse = await fetch('/api/videos');
+                if (videosResponse.ok) {
+                    const videos = await videosResponse.json();
+                    displayVideos(videos);
+                }
+            } catch (error) {
+                console.error('Failed to load videos:', error);
+            }
+
+            updateTimestamp();
+        }
+
+        function displayJestResults(data) {
+            const container = document.getElementById('jest-results');
+
+            if (!data.testResults || data.testResults.length === 0) {
+                container.innerHTML = '<div class="no-data">No test results found.</div>';
+                return;
+            }
+
+            let html = '';
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+
+            data.testResults.forEach(file => {
+                file.assertionResults.forEach(test => {
+                    totalTests++;
+                    const passed = test.status === 'passed';
+                    if (passed) passedTests++;
+                    else failedTests++;
+
+                    html += `
+                        <div class="test-item ${passed ? 'passed' : 'failed'}">
+                            <div class="test-item-title">${test.title}</div>
+                            <div class="test-item-duration">${test.duration}ms - ${file.name}</div>
+                        </div>
+                    `;
+                });
+            });
+
+            container.innerHTML = html;
+            updateStats(totalTests, passedTests, failedTests, data.startTime ? new Date().getTime() - data.startTime : 0);
+        }
+
+        function displayPlaywrightResults(data) {
+            const container = document.getElementById('playwright-results');
+
+            if (!data.suites || data.suites.length === 0) {
+                container.innerHTML = '<div class="no-data">No test results found.</div>';
+                return;
+            }
+
+            let html = '';
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+
+            function processSuite(suite) {
+                if (suite.specs) {
+                    suite.specs.forEach(spec => {
+                        spec.tests.forEach(test => {
+                            totalTests++;
+                            const passed = test.status === 'expected' || test.status === 'passed';
+                            if (passed) passedTests++;
+                            else failedTests++;
+
+                            html += `
+                                <div class="test-item ${passed ? 'passed' : 'failed'}">
+                                    <div class="test-item-title">${spec.title}</div>
+                                    <div class="test-item-duration">${test.results[0]?.duration || 0}ms</div>
+                                </div>
+                            `;
+                        });
+                    });
+                }
+                if (suite.suites) {
+                    suite.suites.forEach(processSuite);
+                }
+            }
+
+            data.suites.forEach(processSuite);
+
+            container.innerHTML = html;
+
+            const currentTotal = parseInt(document.getElementById('total-tests').textContent) || 0;
+            const currentPassed = parseInt(document.getElementById('passed-tests').textContent) || 0;
+            const currentFailed = parseInt(document.getElementById('failed-tests').textContent) || 0;
+
+            updateStats(
+                currentTotal + totalTests,
+                currentPassed + passedTests,
+                currentFailed + failedTests,
+                data.stats?.duration || 0
+            );
+        }
+
+        function displayVideos(videos) {
+            if (!videos || videos.length === 0) return;
+
+            const section = document.getElementById('videos-section');
+            let html = '<h3 style="margin-top: 2rem; margin-bottom: 1rem; color: #374151;">Test Videos</h3><div class="video-grid">';
+
+            videos.forEach(video => {
+                html += `
+                    <div class="video-card">
+                        <h4>${video.name}</h4>
+                        <video controls>
+                            <source src="${video.path}" type="video/webm">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            section.innerHTML = html;
+        }
+
+        function updateStats(total, passed, failed, duration) {
+            document.getElementById('total-tests').textContent = total;
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+            document.getElementById('duration').textContent = formatDuration(duration);
+        }
+
+        function formatDuration(ms) {
+            if (ms < 1000) return ms + 'ms';
+            if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+            return (ms / 60000).toFixed(1) + 'min';
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('last-updated').textContent =
+                'Last updated: ' + now.toLocaleString();
+        }
+
+        // Load results on page load
+        loadTestResults();
+    </script>
+</body>
+</html>

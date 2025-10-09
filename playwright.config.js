@@ -7,8 +7,14 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: 'html',
+  reporter: [
+    ['html', { outputFolder: 'test-results/playwright-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/playwright-results.json' }]
+  ],
   use: {
     trace: 'on-first-retry',
+    video: 'on',
+    screenshot: 'on',
   },
+  outputDir: 'test-results/playwright-output',
 });
