@@ -115,8 +115,10 @@ test.describe('Sunrise Alarm App', () => {
     const timeDisplay = alarmWindow.locator('#timeDisplay');
     await expect(timeDisplay).toBeVisible();
 
-    // Close alarm window
-    await alarmWindow.keyboard.press('Escape');
+    // Close alarm window (check if still open first)
+    if (!alarmWindow.isClosed()) {
+      await alarmWindow.close();
+    }
   });
 
   test('should validate duration input (reject invalid values)', async () => {
