@@ -77,8 +77,9 @@ jobs:
       run: |
         mkdir -p _site
 
-        # Copy homepage
+        # Copy homepage and assets
         cp index.html _site/
+        cp icon.png _site/
 
         # Copy tests directory
         cp -r tests _site/
