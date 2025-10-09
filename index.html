@@ -236,12 +236,6 @@
                     </svg>
                     Download for Mac
                 </a>
-                <a href="#" id="windows-download" class="download-btn">
-                    <svg class="platform-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 12V6.75l6-1.32v6.48L3 12m17-9v8.75l-10 .15V5.21L20 3M3 13l6 .09v6.81l-6-1.15V13m17 .25V22l-10-1.91V13.1l10 .15z"/>
-                    </svg>
-                    Download for Windows
-                </a>
             </div>
 
             <p class="version" id="version-info">Loading version...</p>
@@ -258,22 +252,17 @@
 
                         // Find download URLs
                         const macDmg = data.assets.find(asset => asset.name.endsWith('.dmg'));
-                        const windowsExe = data.assets.find(asset => asset.name.endsWith('.exe'));
 
                         // Update download links
                         if (macDmg) {
                             document.getElementById('mac-download').href = macDmg.browser_download_url;
                         }
-                        if (windowsExe) {
-                            document.getElementById('windows-download').href = windowsExe.browser_download_url;
-                        }
                     })
                     .catch(error => {
                         console.error('Error fetching release info:', error);
                         document.getElementById('version-info').textContent = 'Version 1.0.0 • Free • Open Source';
-                        // Fallback URLs
+                        // Fallback URL
                         document.getElementById('mac-download').href = 'https://github.com/bradnemer/sunnyscreen/releases';
-                        document.getElementById('windows-download').href = 'https://github.com/bradnemer/sunnyscreen/releases';
                     });
             </script>
         </div>
@@ -282,19 +271,16 @@
     <section class="features">
         <div class="features-grid">
             <div class="feature">
-                <div class="feature-icon">🌅</div>
                 <h3>Natural Wake-up</h3>
-                <p>Gradual light increase mimics a natural sunrise, helping you wake up gently and naturally.</p>
+                <p>Mimics a natural sunrise to help you wake up gently and naturally.</p>
             </div>
             <div class="feature">
-                <div class="feature-icon">⏰</div>
                 <h3>Customizable Alarms</h3>
-                <p>Set multiple alarms with custom durations and brightness levels to match your routine.</p>
+                <p>Set daily alarms to match your routine.</p>
             </div>
             <div class="feature">
-                <div class="feature-icon">🎨</div>
                 <h3>Beautiful Design</h3>
-                <p>Clean, minimal interface that's easy to use even before your morning coffee.</p>
+                <p>Clean, minimal interface that's easy to set with sleepy eyes.</p>
             </div>
         </div>
     </section>
