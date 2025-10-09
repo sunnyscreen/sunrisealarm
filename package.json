@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
@@ -20,7 +22,8 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^38.2.2",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "jest": "^29.7.0"
   },
   "build": {
     "appId": "com.sunnyscreen.app",
