@@ -30,29 +30,25 @@
       "target": [
         "dmg",
         "zip"
-      ],
-      "icon": "icon.png"
+      ]
     },
     "win": {
       "target": [
         "nsis",
         "portable"
-      ],
-      "icon": "icon.png"
+      ]
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "icon": "icon.png",
       "category": "Utility"
     },
     "files": [
       "main.js",
       "config.html",
       "alarm.html",
-      "icon.png",
       "package.json"
     ]
   }
