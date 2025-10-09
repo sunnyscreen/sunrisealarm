@@ -17,5 +17,14 @@ module.exports = {
       statements: 80
     }
   },
-  verbose: true
+  verbose: true,
+  reporters: [
+    'default',
+    ['jest-html-reporter', {
+      pageTitle: 'Unit Test Results',
+      outputPath: 'test-results/jest-report.html',
+      includeFailureMsg: true,
+      includeConsoleLog: true,
+    }]
+  ]
 };
