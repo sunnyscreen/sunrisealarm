@@ -1,4 +1,4 @@
-name: Deploy Test Dashboard
+name: Main Branch - Test & Deploy GitHub Pages
 
 on:
   push:

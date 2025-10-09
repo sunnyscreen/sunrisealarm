@@ -1,4 +1,4 @@
-name: Run Tests
+name: PR Validation - Run Tests
 
 on:
   pull_request:
