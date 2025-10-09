@@ -111,6 +111,17 @@ jobs:
 
           - **macOS**: Download the `.dmg` file below
 
+          ## Installation
+
+          Since this app is not signed with an Apple Developer certificate, you'll need to bypass Gatekeeper:
+
+          **Option 1:** Right-click the app and select "Open" (instead of double-clicking)
+
+          **Option 2:** Run this command in Terminal:
+          ```bash
+          xattr -cr "/Applications/Sunrise Alarm.app"
+          ```
+
           Built with ❤️ using Electron
         files: |
           dist/*.dmg
