@@ -10,6 +10,12 @@ test.describe('Sunrise Alarm App', () => {
     // Launch Electron app
     electronApp = await electron.launch({
       args: [path.join(__dirname, '../../main.js')],
+      // Disable sandbox for CI environments (required for GitHub Actions Linux runners)
+      executablePath: require('electron'),
+      env: {
+        ...process.env,
+        ELECTRON_DISABLE_SANDBOX: '1',
+      },
     });
 
     // Get the first window
@@ -19,7 +25,9 @@ test.describe('Sunrise Alarm App', () => {
 
   test.afterEach(async () => {
     // Close the app
-    await electronApp.close();
+    if (electronApp) {
+      await electronApp.close();
+    }
   });
 
   test('should launch and display config window', async () => {
