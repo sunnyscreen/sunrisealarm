@@ -1,6 +1,13 @@
 const { app, BrowserWindow, ipcMain, screen, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const {
+    calculateNextAlarm,
+    getDefaultConfig,
+    validateAndFixConfig,
+    isValidTimeFormat,
+    isValidDuration
+} = require('./alarm-utils');
 
 let CONFIG_FILE;
 
@@ -23,46 +30,6 @@ function loadConfig() {
         console.error('Error loading config:', err);
     }
     return getDefaultConfig();
-}
-
-function getDefaultConfig() {
-    return {
-        enabled: false,
-        wakeTime: '07:00',
-        duration: 30,
-        daysOfWeek: [1, 2, 3, 4, 5] // Monday-Friday
-    };
-}
-
-function validateAndFixConfig(config) {
-    const defaultConfig = getDefaultConfig();
-    const fixed = { ...defaultConfig };
-    
-    // Validate enabled
-    if (typeof config.enabled === 'boolean') {
-        fixed.enabled = config.enabled;
-    }
-    
-    // Validate wakeTime
-    if (typeof config.wakeTime === 'string' && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(config.wakeTime)) {
-        fixed.wakeTime = config.wakeTime;
-    }
-    
-    // Validate duration - must be whole number 1-60
-    if (typeof config.duration === 'number' && 
-        Number.isInteger(config.duration) && 
-        config.duration >= 1 && 
-        config.duration <= 60) {
-        fixed.duration = config.duration;
-    }
-    
-    // Validate daysOfWeek
-    if (Array.isArray(config.daysOfWeek) && config.daysOfWeek.every(day => 
-        typeof day === 'number' && day >= 0 && day <= 6)) {
-        fixed.daysOfWeek = config.daysOfWeek;
-    }
-    
-    return fixed;
 }
 
 function saveConfig(config) {
@@ -143,44 +110,18 @@ function scheduleNextAlarm(config) {
     }
 
     // Validate config before proceeding
-    if (!config.wakeTime || !config.wakeTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+    if (!isValidTimeFormat(config.wakeTime)) {
         console.error('Invalid wakeTime format:', config.wakeTime);
         return;
     }
-    
-    if (typeof config.duration !== 'number' || 
-        !Number.isInteger(config.duration) || 
-        config.duration < 1 || 
-        config.duration > 60) {
+
+    if (!isValidDuration(config.duration)) {
         console.error('Invalid duration:', config.duration);
         return;
     }
 
     const now = new Date();
-    const [hours, minutes] = config.wakeTime.split(':').map(Number);
-    
-    // Additional validation for parsed time
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        console.error('Invalid time values:', hours, minutes);
-        return;
-    }
-
-    let nextAlarm = new Date();
-    nextAlarm.setHours(hours, minutes, 0, 0);
-
-    // Check if today is valid and time hasn't passed
-    const todayIsValid = config.daysOfWeek.includes(nextAlarm.getDay());
-    const timeHasPassed = nextAlarm <= now;
-
-    // If time has passed today OR today is not a valid day, start looking from tomorrow
-    if (timeHasPassed || !todayIsValid) {
-        nextAlarm.setDate(nextAlarm.getDate() + 1);
-        // Find next valid day of week
-        while (!config.daysOfWeek.includes(nextAlarm.getDay())) {
-            nextAlarm.setDate(nextAlarm.getDate() + 1);
-        }
-    }
-
+    const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek, now);
     const msUntilAlarm = nextAlarm - now;
 
     // Max setTimeout is ~24.8 days, but we'll reschedule daily anyway
@@ -231,39 +172,16 @@ ipcMain.on('get-next-alarm', (event) => {
         event.reply('next-alarm-time', null);
         return;
     }
-    
+
     // Validate config before proceeding
-    if (!config.wakeTime || !config.wakeTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+    if (!isValidTimeFormat(config.wakeTime)) {
         console.error('Invalid wakeTime format:', config.wakeTime);
         event.reply('next-alarm-time', null);
         return;
     }
 
     const now = new Date();
-    const [hours, minutes] = config.wakeTime.split(':').map(Number);
-    
-    // Additional validation for parsed time
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        console.error('Invalid time values:', hours, minutes);
-        event.reply('next-alarm-time', null);
-        return;
-    }
-
-    let nextAlarm = new Date();
-    nextAlarm.setHours(hours, minutes, 0, 0);
-
-    // Check if today is valid and time hasn't passed
-    const todayIsValid = config.daysOfWeek.includes(nextAlarm.getDay());
-    const timeHasPassed = nextAlarm <= now;
-
-    // If time has passed today OR today is not a valid day, start looking from tomorrow
-    if (timeHasPassed || !todayIsValid) {
-        nextAlarm.setDate(nextAlarm.getDate() + 1);
-        // Find next valid day of week
-        while (!config.daysOfWeek.includes(nextAlarm.getDay())) {
-            nextAlarm.setDate(nextAlarm.getDate() + 1);
-        }
-    }
+    const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek, now);
 
     event.reply('next-alarm-time', nextAlarm.toString());
 });
