@@ -8,9 +8,13 @@ if (!fs.existsSync(testResultsDir)) {
     fs.mkdirSync(testResultsDir, { recursive: true });
 }
 
+// Get additional arguments passed to the script
+const additionalArgs = process.argv.slice(2).join(' ');
+const jestCommand = `jest --json --outputFile=test-results/jest-results.json ${additionalArgs}`.trim();
+
 try {
-    // Run Jest with JSON output
-    const output = execSync('jest --json --outputFile=test-results/jest-results.json', {
+    // Run Jest with JSON output and any additional arguments
+    const output = execSync(jestCommand, {
         encoding: 'utf8',
         stdio: ['inherit', 'pipe', 'pipe']
     });
