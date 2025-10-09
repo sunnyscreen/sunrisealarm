@@ -201,12 +201,14 @@ describe('Alarm Calculations', () => {
         expect(isValidTimeFormat('07:00')).toBe(true);
         expect(isValidTimeFormat('23:59')).toBe(true);
         expect(isValidTimeFormat('0:00')).toBe(true);
+        expect(isValidTimeFormat('7:00')).toBe(true); // Single-digit hour is valid
       });
 
       test('should reject invalid time format', () => {
         expect(isValidTimeFormat('25:00')).toBe(false);
         expect(isValidTimeFormat('12:60')).toBe(false);
-        expect(isValidTimeFormat('7:00')).toBe(false); // Missing leading zero
+        expect(isValidTimeFormat('abc')).toBe(false);
+        expect(isValidTimeFormat('')).toBe(false);
       });
     });
 
