@@ -31,6 +31,7 @@
   "build": {
     "appId": "com.sunnyscreen.app",
     "productName": "Sunrise Alarm",
+    "artifactName": "${productName}-${version}.${ext}",
     "mac": {
       "category": "public.app-category.lifestyle",
       "target": [
@@ -53,8 +54,10 @@
     },
     "files": [
       "main.js",
+      "alarm-utils.js",
       "config.html",
       "alarm.html",
+      "icon.png",
       "package.json"
     ]
   }
