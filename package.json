@@ -1,0 +1,59 @@
+{
+  "name": "sunnyscreen",
+  "version": "1.0.0",
+  "description": "Sunrise alarm app that gently brightens your screen to wake you up",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "alarm",
+    "sunrise",
+    "wake-up"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.sunnyscreen.app",
+    "productName": "Sunrise Alarm",
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "icon.png",
+      "category": "Utility"
+    },
+    "files": [
+      "main.js",
+      "config.html",
+      "alarm.html",
+      "icon.png",
+      "package.json"
+    ]
+  }
+}

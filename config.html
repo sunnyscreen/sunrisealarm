@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Sunrise Alarm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            background-image:
+                radial-gradient(at 20% 30%, rgba(30, 30, 60, 0.3) 0px, transparent 50%),
+                radial-gradient(at 80% 70%, rgba(20, 20, 40, 0.3) 0px, transparent 50%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #e5e5e5;
+        }
+
+        .container {
+            width: 750px;
+            height: 750px;
+            max-width: 750px;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 44px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 40px;
+            font-size: 24px;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:has(.days-group) label {
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-row .form-group:first-child {
+            flex: 0 0 70%;
+        }
+
+        .form-row .form-group:last-child {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+            font-size: 24px;
+            letter-spacing: -0.4px;
+        }
+
+        input[type="time"],
+        input[type="number"] {
+            width: 100%;
+            height: 70px;
+            padding: 20px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            font-size: 30px;
+            color: #ffffff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            box-sizing: border-box;
+        }
+
+        input[type="time"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+
+        .days-group {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .day-btn {
+            padding: 16px 10px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .day-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .day-btn.active {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.3), rgba(255, 107, 0, 0.3));
+            color: #ffffff;
+            border-color: rgba(255, 149, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 149, 0, 0.15);
+        }
+
+        button {
+            width: 100%;
+            padding: 20px;
+            margin-top: 28px;
+            border: none;
+            border-radius: 16px;
+            font-size: 28px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: -0.4px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF9500, #FF6B00);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255, 149, 0, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(52, 199, 89, 0.3);
+            color: #ffffff;
+            border: 1px solid rgba(52, 199, 89, 0.5);
+            box-shadow: 0 0 20px rgba(52, 199, 89, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(52, 199, 89, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 0 24px rgba(52, 199, 89, 0.25);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .next-alarm {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .next-alarm strong {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sunrise Alarm</h1>
+        <p class="subtitle">Wake up gently with a simulated sunrise</p>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="wakeTime">Wake Time</label>
+                <input type="time" id="wakeTime" value="07:00">
+            </div>
+
+            <div class="form-group">
+                <label for="duration">Duration (min)</label>
+                <input type="number" id="duration" min="5" max="60" value="30">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Active Days</label>
+            <div class="days-group">
+                <button class="day-btn" data-day="0">Sun</button>
+                <button class="day-btn active" data-day="1">Mon</button>
+                <button class="day-btn active" data-day="2">Tue</button>
+                <button class="day-btn active" data-day="3">Wed</button>
+                <button class="day-btn active" data-day="4">Thu</button>
+                <button class="day-btn active" data-day="5">Fri</button>
+                <button class="day-btn" data-day="6">Sat</button>
+            </div>
+        </div>
+
+        <div class="next-alarm" id="nextAlarm" style="display: none;"></div>
+
+        <button class="btn-secondary" id="testBtn">Start</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let selectedDays = [1, 2, 3, 4, 5];
+
+        // Load config on startup
+        ipcRenderer.send('get-config');
+
+        ipcRenderer.on('config-data', (event, config) => {
+            document.getElementById('wakeTime').value = config.wakeTime;
+            document.getElementById('duration').value = config.duration;
+            selectedDays = config.daysOfWeek;
+
+            // Update day buttons
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                const day = parseInt(btn.dataset.day);
+                if (selectedDays.includes(day)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            updateNextAlarm();
+        });
+
+        // Auto-save function
+        function saveConfig() {
+            const config = {
+                enabled: true,
+                wakeTime: document.getElementById('wakeTime').value,
+                duration: parseInt(document.getElementById('duration').value),
+                daysOfWeek: selectedDays.sort((a, b) => a - b)
+            };
+
+            ipcRenderer.send('save-config', config);
+        }
+
+        // Day selection
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const day = parseInt(btn.dataset.day);
+
+                if (selectedDays.includes(day)) {
+                    selectedDays = selectedDays.filter(d => d !== day);
+                    btn.classList.remove('active');
+                } else {
+                    selectedDays.push(day);
+                    btn.classList.add('active');
+                }
+
+                saveConfig();
+            });
+        });
+
+        // Auto-save on wake time change
+        document.getElementById('wakeTime').addEventListener('change', saveConfig);
+
+        // Auto-save on duration change
+        document.getElementById('duration').addEventListener('change', saveConfig);
+
+        ipcRenderer.on('config-saved', () => {
+            updateNextAlarm();
+        });
+
+        // Start alarm
+        document.getElementById('testBtn').addEventListener('click', () => {
+            const duration = parseInt(document.getElementById('duration').value);
+            const wakeTime = document.getElementById('wakeTime').value;
+            ipcRenderer.send('test-alarm', duration, wakeTime);
+        });
+
+        function updateNextAlarm() {
+            ipcRenderer.send('get-next-alarm');
+        }
+
+        ipcRenderer.on('next-alarm-time', (event, nextAlarmStr) => {
+            const nextAlarmDiv = document.getElementById('nextAlarm');
+            if (nextAlarmStr) {
+                const date = new Date(nextAlarmStr);
+                const options = { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                nextAlarmDiv.innerHTML = `<strong>Next alarm:</strong> ${date.toLocaleString('en-US', options)}`;
+                nextAlarmDiv.style.display = 'block';
+            } else {
+                nextAlarmDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
