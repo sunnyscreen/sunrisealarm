@@ -37,18 +37,19 @@ test.describe('Test Dashboard Page', () => {
     await expect(page.locator('#duration')).toBeVisible();
   });
 
-  test('should have tabbed interface with two tabs', async ({ page }) => {
+  test('should have tabbed interface with three tabs', async ({ page }) => {
     // Check tabs container exists
     const tabsContainer = page.locator('.tabs-container');
     await expect(tabsContainer).toBeVisible();
 
-    // Check both tabs exist
+    // Check all three tabs exist
     const tabs = page.locator('.tab');
-    await expect(tabs).toHaveCount(2);
+    await expect(tabs).toHaveCount(3);
 
     // Check tab labels
     await expect(tabs.nth(0)).toHaveText('Unit Tests');
-    await expect(tabs.nth(1)).toHaveText('End-to-End Tests');
+    await expect(tabs.nth(1)).toHaveText('Local End-to-End Tests');
+    await expect(tabs.nth(2)).toHaveText('Post-Deployment End-to-End Tests');
 
     // Check Unit Tests tab is active by default
     await expect(tabs.nth(0)).toHaveClass(/active/);
@@ -102,14 +103,14 @@ test.describe('Test Dashboard Page', () => {
     await expect(resultsContainer).toBeVisible();
   });
 
-  test('should display E2E Tests tab content', async ({ page }) => {
-    // Click E2E tab
+  test('should display Local E2E Tests tab content', async ({ page }) => {
+    // Click Local E2E tab
     const e2eTab = page.locator('.tab').nth(1);
     await e2eTab.click();
 
     // Check tab title
     const tabTitle = page.locator('#e2e-tab .tab-title');
-    await expect(tabTitle).toHaveText('End-to-End Tests (Playwright)');
+    await expect(tabTitle).toHaveText('Local End-to-End Tests (Playwright)');
 
     // Check "View Full Report" button exists
     const reportButton = page.locator('#e2e-tab .btn-primary');
@@ -125,6 +126,31 @@ test.describe('Test Dashboard Page', () => {
     const videosSection = page.locator('#videos-section');
     const videosSectionCount = await videosSection.count();
     expect(videosSectionCount).toBe(1);
+  });
+
+  test('should display Post-Deployment E2E Tests tab content', async ({ page }) => {
+    // Click Post-Deployment E2E tab
+    const deployedTab = page.locator('.tab').nth(2);
+    await deployedTab.click();
+
+    // Check tab title
+    const tabTitle = page.locator('#deployed-tab .tab-title');
+    await expect(tabTitle).toHaveText('Post-Deployment End-to-End Tests (Playwright)');
+
+    // Check "View Full Report" button exists
+    const reportButton = page.locator('#deployed-tab .btn-primary');
+    await expect(reportButton).toBeVisible();
+    await expect(reportButton).toHaveText('View Full Report');
+    await expect(reportButton).toHaveAttribute('href', 'test-results/playwright-deployed-report/index.html');
+
+    // Check test results container exists
+    const resultsContainer = page.locator('#playwright-deployed-results');
+    await expect(resultsContainer).toBeVisible();
+
+    // Check deployed videos section exists in the DOM (may be empty if no videos)
+    const deployedVideosSection = page.locator('#deployed-videos-section');
+    const deployedVideosSectionCount = await deployedVideosSection.count();
+    expect(deployedVideosSectionCount).toBe(1);
   });
 
   test('should display timestamp', async ({ page }) => {
