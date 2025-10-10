@@ -10,7 +10,17 @@ app.use('/test-results', express.static(path.join(__dirname, 'test-results')));
 
 // Main dashboard route
 app.get('/tests', (req, res) => {
-    res.sendFile(path.join(__dirname, 'test-dashboard.html'));
+    res.sendFile(path.join(__dirname, 'tests', 'index.html'));
+});
+
+// Serve web app
+app.get('/app', (req, res) => {
+    res.sendFile(path.join(__dirname, 'app.html'));
+});
+
+// Serve alarm utils
+app.get('/alarm-utils.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'alarm-utils.js'));
 });
 
 // API endpoint to list available videos

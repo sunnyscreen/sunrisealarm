@@ -1,11 +1,11 @@
-name: CI/CD - Build, Test, Release & Deploy
+name: CI/CD - Test & Deploy Web App
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-# Permissions for creating releases and deploying to GitHub Pages
+# Permissions for deploying to GitHub Pages
 permissions:
   contents: write
   pages: write
@@ -17,71 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  version:
-    name: Generate Version Number
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Generate version from run number
-      id: version
-      run: |
-        # Read base version from package.json (e.g., "1.0.0")
-        BASE_VERSION=$(node -p "require('./package.json').version")
-        # Extract major.minor (e.g., "1.0")
-        MAJOR_MINOR=$(echo $BASE_VERSION | cut -d. -f1-2)
-        # Use GitHub run number as patch version
-        VERSION="${MAJOR_MINOR}.${{ github.run_number }}"
-        TAG="v${VERSION}"
-
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "tag=${TAG}" >> $GITHUB_OUTPUT
-        echo "Generated version: ${VERSION}"
-
-  build:
-    name: Build macOS App
-    runs-on: macos-latest
-    needs: version
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Update version in package.json
-      run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version
-
-    - name: Build macOS app
-      run: npm run build:mac -- --publish never
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
-
-    - name: Upload macOS build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: macos-build
-        path: |
-          dist/*.dmg
-          dist/*.zip
-        retention-days: 90
-
   test:
     name: Run All Tests
-    runs-on: macos-latest
-    needs: build
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -99,12 +37,6 @@ jobs:
     - name: Run unit tests
       run: npm test
 
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
-
-    - name: Run E2E tests
-      run: npm run test:e2e
-
     - name: Upload test results for dashboard
       uses: actions/upload-artifact@v4
       with:
@@ -112,59 +44,10 @@ jobs:
         path: test-results/
         retention-days: 90
 
-  release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [version, test]
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download macOS artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: macos-build
-        path: dist/
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ needs.version.outputs.tag }}
-        name: Sunnyscreen ${{ needs.version.outputs.tag }}
-        body: |
-          ## Sunnyscreen ${{ needs.version.outputs.version }}
-
-          Automated release from commit ${{ github.sha }}
-
-          ### Downloads
-
-          - **macOS**: Download the `.dmg` file below
-
-          ### Installation
-
-          Since this app is not signed with an Apple Developer certificate, you'll need to bypass Gatekeeper:
-
-          **Option 1:** Right-click the app and select "Open" (instead of double-clicking)
-
-          **Option 2:** Run this command in Terminal:
-          ```bash
-          xattr -cr "/Applications/Sunrise Alarm.app"
-          ```
-
-          ---
-
-          🤖 Built and released automatically via CI/CD
-        files: |
-          dist/*.dmg
-          dist/*.zip
-        draft: false
-        prerelease: false
-
   deploy-pages:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: [version, test]
+    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -212,8 +95,10 @@ jobs:
       run: |
         mkdir -p _site
 
-        # Copy homepage and assets
+        # Copy homepage, web app, and assets
         cp index.html _site/
+        cp app.html _site/
+        cp alarm-utils.js _site/
         cp icon.png _site/
 
         # Copy tests directory with results
@@ -228,151 +113,3 @@ jobs:
       id: deployment
       uses: actions/deploy-pages@v4
 
-  validate-deployment:
-    name: Validate Deployed Site
-    runs-on: ubuntu-latest
-    needs: deploy-pages
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
-
-    - name: Wait for deployment to be ready
-      run: |
-        echo "Waiting 30 seconds for GitHub Pages to fully deploy..."
-        sleep 30
-
-    - name: Run post-deployment tests
-      run: npm run test:e2e:deployed
-
-    - name: Upload post-deployment test results
-      uses: actions/upload-artifact@v4
-      with:
-        name: post-deployment-test-results
-        path: test-results/
-        retention-days: 30
-
-  redeploy-with-validation:
-    name: Update Dashboard with Post-Deployment Results
-    runs-on: ubuntu-latest
-    needs: validate-deployment
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.redeployment.outputs.page_url }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download pre-deployment test results
-      uses: actions/download-artifact@v4
-      with:
-        name: test-results
-        path: test-results/
-
-    - name: Download post-deployment test results
-      uses: actions/download-artifact@v4
-      with:
-        name: post-deployment-test-results
-        path: post-deployment-results/
-
-    - name: Create videos manifests and organize results
-      run: |
-        # Create videos.json manifest for pre-deployment tests
-        mkdir -p tests/test-results/playwright-output
-        mkdir -p tests/test-results/playwright-deployed-output
-
-        # Copy pre-deployment test results
-        cp -r test-results/* tests/test-results/ 2>/dev/null || true
-
-        # Generate pre-deployment videos.json
-        cat > tests/test-results/videos.json << 'EOF'
-        []
-        EOF
-
-        if [ -d "test-results/playwright-output" ] && [ "$(ls -A test-results/playwright-output/*.webm 2>/dev/null)" ]; then
-          echo "[" > tests/test-results/videos.json
-          first=true
-          for video in test-results/playwright-output/*.webm; do
-            if [ -f "$video" ]; then
-              filename=$(basename "$video")
-              name=$(echo "$filename" | sed 's/.webm$//' | sed 's/-/ /g')
-              [ "$first" = false ] && echo "," >> tests/test-results/videos.json
-              echo "  {\"name\": \"$name\", \"file\": \"$filename\"}" >> tests/test-results/videos.json
-              first=false
-            fi
-          done
-          echo "]" >> tests/test-results/videos.json
-        fi
-
-        # Copy post-deployment test results
-        if [ -d "post-deployment-results" ]; then
-          # Copy JSON results with renamed files
-          cp post-deployment-results/playwright-results.json tests/test-results/playwright-deployed-results.json 2>/dev/null || true
-
-          # Copy HTML report to a separate directory
-          if [ -d "post-deployment-results/playwright-report" ]; then
-            cp -r post-deployment-results/playwright-report tests/test-results/playwright-deployed-report
-          fi
-
-          # Copy video files to separate directory
-          if [ -d "post-deployment-results/playwright-output" ]; then
-            cp -r post-deployment-results/playwright-output/* tests/test-results/playwright-deployed-output/ 2>/dev/null || true
-          fi
-        fi
-
-        # Generate deployed-videos.json
-        cat > tests/test-results/deployed-videos.json << 'EOF'
-        []
-        EOF
-
-        if [ -d "tests/test-results/playwright-deployed-output" ] && [ "$(ls -A tests/test-results/playwright-deployed-output/*.webm 2>/dev/null)" ]; then
-          echo "[" > tests/test-results/deployed-videos.json
-          first=true
-          for video in tests/test-results/playwright-deployed-output/*.webm; do
-            if [ -f "$video" ]; then
-              filename=$(basename "$video")
-              name=$(echo "$filename" | sed 's/.webm$//' | sed 's/-/ /g')
-              [ "$first" = false ] && echo "," >> tests/test-results/deployed-videos.json
-              echo "  {\"name\": \"$name\", \"file\": \"$filename\"}" >> tests/test-results/deployed-videos.json
-              first=false
-            fi
-          done
-          echo "]" >> tests/test-results/deployed-videos.json
-        fi
-
-    - name: Create deployment directory
-      run: |
-        mkdir -p _site
-
-        # Copy homepage and assets
-        cp index.html _site/
-        cp icon.png _site/
-
-        # Copy tests directory with all results
-        cp -r tests _site/
-
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: '_site'
-
-    - name: Deploy to GitHub Pages
-      id: redeployment
-      uses: actions/deploy-pages@v4
