@@ -231,6 +231,88 @@
             color: #6b7280;
             font-style: italic;
         }
+
+        .tabs-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f9fafb;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1.25rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #6b7280;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: rgba(102, 126, 234, 0.05);
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            background: white;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-title {
+            color: #667eea;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -256,31 +338,48 @@
             </div>
         </div>
 
-        <div class="test-section">
-            <h2>Unit Tests (Jest)</h2>
-            <div class="button-group">
-                <a href="test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('unit')">Unit Tests</button>
+                <button class="tab" onclick="switchTab('e2e')">End-to-End Tests</button>
             </div>
-            <div id="jest-results" class="test-results">
-                <div class="loading">Loading unit test results...</div>
-            </div>
-        </div>
 
-        <div class="test-section">
-            <h2>E2E Tests (Playwright)</h2>
-            <div class="button-group">
-                <a href="test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+            <div id="unit-tab" class="tab-content active">
+                <div class="tab-header">
+                    <h2 class="tab-title">Unit Tests (Jest)</h2>
+                    <a href="test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                </div>
+                <div id="jest-results" class="test-results">
+                    <div class="loading">Loading unit test results...</div>
+                </div>
             </div>
-            <div id="playwright-results" class="test-results">
-                <div class="loading">Loading E2E test results...</div>
+
+            <div id="e2e-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2 class="tab-title">End-to-End Tests (Playwright)</h2>
+                    <a href="test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                </div>
+                <div id="playwright-results" class="test-results">
+                    <div class="loading">Loading E2E test results...</div>
+                </div>
+                <div id="videos-section"></div>
             </div>
-            <div id="videos-section"></div>
         </div>
 
         <div class="timestamp" id="last-updated"></div>
     </div>
 
     <script>
+        function switchTab(tabName) {
+            // Remove active class from all tabs and tab contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
         async function loadTestResults() {
             try {
                 // Load Jest results
