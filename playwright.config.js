@@ -14,7 +14,7 @@ module.exports = defineConfig({
   use: {
     trace: 'on-first-retry',
     video: 'on',
-    screenshot: 'on',
+    screenshot: 'only-on-failure',
   },
   outputDir: 'test-results/playwright-output',
 });
