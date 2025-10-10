@@ -341,7 +341,8 @@
         <div class="tabs-container">
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('unit')">Unit Tests</button>
-                <button class="tab" onclick="switchTab('e2e')">End-to-End Tests</button>
+                <button class="tab" onclick="switchTab('e2e')">Local End-to-End Tests</button>
+                <button class="tab" onclick="switchTab('deployed')">Post-Deployment End-to-End Tests</button>
             </div>
 
             <div id="unit-tab" class="tab-content active">
@@ -356,13 +357,24 @@
 
             <div id="e2e-tab" class="tab-content">
                 <div class="tab-header">
-                    <h2 class="tab-title">End-to-End Tests (Playwright)</h2>
+                    <h2 class="tab-title">Local End-to-End Tests (Playwright)</h2>
                     <a href="test-results/playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
                 </div>
                 <div id="playwright-results" class="test-results">
                     <div class="loading">Loading E2E test results...</div>
                 </div>
                 <div id="videos-section"></div>
+            </div>
+
+            <div id="deployed-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2 class="tab-title">Post-Deployment End-to-End Tests (Playwright)</h2>
+                    <a href="test-results/playwright-deployed-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                </div>
+                <div id="playwright-deployed-results" class="test-results">
+                    <div class="loading">Loading post-deployment test results...</div>
+                </div>
+                <div id="deployed-videos-section"></div>
             </div>
         </div>
 
@@ -411,6 +423,21 @@
                     '<div class="error-message">Failed to load E2E test results: ' + error.message + '</div>';
             }
 
+            try {
+                // Load Post-Deployment Playwright results
+                const deployedResponse = await fetch('test-results/playwright-deployed-results.json');
+                if (deployedResponse.ok) {
+                    const deployedData = await deployedResponse.json();
+                    displayDeployedResults(deployedData);
+                } else {
+                    document.getElementById('playwright-deployed-results').innerHTML =
+                        '<div class="no-data">No post-deployment test results available. Tests run after GitHub Pages deployment.</div>';
+                }
+            } catch (error) {
+                document.getElementById('playwright-deployed-results').innerHTML =
+                    '<div class="error-message">Failed to load post-deployment test results: ' + error.message + '</div>';
+            }
+
             // Try to load videos manifest
             try {
                 const videosResponse = await fetch('test-results/videos.json');
@@ -420,6 +447,17 @@
                 }
             } catch (error) {
                 console.log('No test videos available:', error.message);
+            }
+
+            // Try to load deployed test videos manifest
+            try {
+                const deployedVideosResponse = await fetch('test-results/deployed-videos.json');
+                if (deployedVideosResponse.ok) {
+                    const deployedVideos = await deployedVideosResponse.json();
+                    displayDeployedVideos(deployedVideos);
+                }
+            } catch (error) {
+                console.log('No deployed test videos available:', error.message);
             }
 
             updateTimestamp();
@@ -510,6 +548,49 @@
             );
         }
 
+        function displayDeployedResults(data) {
+            const container = document.getElementById('playwright-deployed-results');
+
+            if (!data.suites || data.suites.length === 0) {
+                container.innerHTML = '<div class="no-data">No test results found.</div>';
+                return;
+            }
+
+            let html = '';
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+
+            function processSuite(suite) {
+                if (suite.specs) {
+                    suite.specs.forEach(spec => {
+                        spec.tests.forEach(test => {
+                            totalTests++;
+                            const passed = test.status === 'expected' || test.status === 'passed';
+                            if (passed) passedTests++;
+                            else failedTests++;
+
+                            html += `
+                                <div class="test-item ${passed ? 'passed' : 'failed'}">
+                                    <div class="test-item-title">${spec.title}</div>
+                                    <div class="test-item-duration">${test.results[0]?.duration || 0}ms</div>
+                                </div>
+                            `;
+                        });
+                    });
+                }
+                if (suite.suites) {
+                    suite.suites.forEach(processSuite);
+                }
+            }
+
+            data.suites.forEach(processSuite);
+
+            container.innerHTML = html;
+
+            // Don't update global stats for deployed tests, they're separate
+        }
+
         function displayVideos(videos) {
             if (!videos || videos.length === 0) return;
 
@@ -518,6 +599,29 @@
 
             videos.forEach(video => {
                 const videoPath = video.path || `test-results/playwright-output/${video.file}`;
+                html += `
+                    <div class="video-card">
+                        <h4>${video.name}</h4>
+                        <video controls>
+                            <source src="${videoPath}" type="video/webm">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            section.innerHTML = html;
+        }
+
+        function displayDeployedVideos(videos) {
+            if (!videos || videos.length === 0) return;
+
+            const section = document.getElementById('deployed-videos-section');
+            let html = '<h3 style="margin-top: 2rem; margin-bottom: 1rem; color: #374151;">Test Videos</h3><div class="video-grid">';
+
+            videos.forEach(video => {
+                const videoPath = video.path || `test-results/playwright-deployed-output/${video.file}`;
                 html += `
                     <div class="video-card">
                         <h4>${video.name}</h4>

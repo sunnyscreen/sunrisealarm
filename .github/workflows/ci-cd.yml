@@ -257,10 +257,122 @@ jobs:
     - name: Run post-deployment tests
       run: npm run test:e2e:deployed
 
-    - name: Upload test results on failure
-      if: failure()
+    - name: Upload post-deployment test results
       uses: actions/upload-artifact@v4
       with:
         name: post-deployment-test-results
         path: test-results/
         retention-days: 30
+
+  redeploy-with-validation:
+    name: Update Dashboard with Post-Deployment Results
+    runs-on: ubuntu-latest
+    needs: validate-deployment
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.redeployment.outputs.page_url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download pre-deployment test results
+      uses: actions/download-artifact@v4
+      with:
+        name: test-results
+        path: test-results/
+
+    - name: Download post-deployment test results
+      uses: actions/download-artifact@v4
+      with:
+        name: post-deployment-test-results
+        path: post-deployment-results/
+
+    - name: Create videos manifests and organize results
+      run: |
+        # Create videos.json manifest for pre-deployment tests
+        mkdir -p tests/test-results/playwright-output
+        mkdir -p tests/test-results/playwright-deployed-output
+
+        # Copy pre-deployment test results
+        cp -r test-results/* tests/test-results/ 2>/dev/null || true
+
+        # Generate pre-deployment videos.json
+        cat > tests/test-results/videos.json << 'EOF'
+        []
+        EOF
+
+        if [ -d "test-results/playwright-output" ] && [ "$(ls -A test-results/playwright-output/*.webm 2>/dev/null)" ]; then
+          echo "[" > tests/test-results/videos.json
+          first=true
+          for video in test-results/playwright-output/*.webm; do
+            if [ -f "$video" ]; then
+              filename=$(basename "$video")
+              name=$(echo "$filename" | sed 's/.webm$//' | sed 's/-/ /g')
+              [ "$first" = false ] && echo "," >> tests/test-results/videos.json
+              echo "  {\"name\": \"$name\", \"file\": \"$filename\"}" >> tests/test-results/videos.json
+              first=false
+            fi
+          done
+          echo "]" >> tests/test-results/videos.json
+        fi
+
+        # Copy post-deployment test results
+        if [ -d "post-deployment-results" ]; then
+          # Copy JSON results with renamed files
+          cp post-deployment-results/playwright-results.json tests/test-results/playwright-deployed-results.json 2>/dev/null || true
+
+          # Copy HTML report to a separate directory
+          if [ -d "post-deployment-results/playwright-report" ]; then
+            cp -r post-deployment-results/playwright-report tests/test-results/playwright-deployed-report
+          fi
+
+          # Copy video files to separate directory
+          if [ -d "post-deployment-results/playwright-output" ]; then
+            cp -r post-deployment-results/playwright-output/* tests/test-results/playwright-deployed-output/ 2>/dev/null || true
+          fi
+        fi
+
+        # Generate deployed-videos.json
+        cat > tests/test-results/deployed-videos.json << 'EOF'
+        []
+        EOF
+
+        if [ -d "tests/test-results/playwright-deployed-output" ] && [ "$(ls -A tests/test-results/playwright-deployed-output/*.webm 2>/dev/null)" ]; then
+          echo "[" > tests/test-results/deployed-videos.json
+          first=true
+          for video in tests/test-results/playwright-deployed-output/*.webm; do
+            if [ -f "$video" ]; then
+              filename=$(basename "$video")
+              name=$(echo "$filename" | sed 's/.webm$//' | sed 's/-/ /g')
+              [ "$first" = false ] && echo "," >> tests/test-results/deployed-videos.json
+              echo "  {\"name\": \"$name\", \"file\": \"$filename\"}" >> tests/test-results/deployed-videos.json
+              first=false
+            fi
+          done
+          echo "]" >> tests/test-results/deployed-videos.json
+        fi
+
+    - name: Create deployment directory
+      run: |
+        mkdir -p _site
+
+        # Copy homepage and assets
+        cp index.html _site/
+        cp icon.png _site/
+
+        # Copy tests directory with all results
+        cp -r tests _site/
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '_site'
+
+    - name: Deploy to GitHub Pages
+      id: redeployment
+      uses: actions/deploy-pages@v4
