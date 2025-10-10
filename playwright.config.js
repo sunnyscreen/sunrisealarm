@@ -2,6 +2,8 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
+  // Exclude deployed tests from normal runs
+  testIgnore: process.env.TEST_DEPLOYED ? undefined : '**/dashboard-deployed.spec.js',
   timeout: 30000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

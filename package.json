@@ -8,6 +8,7 @@
     "test": "node run-tests-with-json.js",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
+    "test:e2e:deployed": "TEST_DEPLOYED=true playwright test tests/e2e/dashboard-deployed.spec.js",
     "test:all": "npm test && npm run test:e2e",
     "test:dashboard": "node test-server.js",
     "build": "electron-builder",
