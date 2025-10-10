@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunrise Alarm - Wake Up Gently</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            background-image:
+                radial-gradient(at 20% 30%, rgba(30, 30, 60, 0.3) 0px, transparent 50%),
+                radial-gradient(at 80% 70%, rgba(20, 20, 40, 0.3) 0px, transparent 50%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #e5e5e5;
+            transition: background-color 0.5s ease;
+        }
+
+        body.alarm-active {
+            cursor: none;
+            padding: 0;
+        }
+
+        .container {
+            width: 750px;
+            max-width: 750px;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        body.alarm-active .container {
+            display: none;
+        }
+
+        h1 {
+            font-size: 44px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 40px;
+            font-size: 24px;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:has(.days-group) label {
+            margin-bottom: -16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-row .form-group:first-child {
+            flex: 0 0 70%;
+        }
+
+        .form-row .form-group:last-child {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+            font-size: 24px;
+            letter-spacing: -0.4px;
+        }
+
+        input[type="time"],
+        input[type="number"] {
+            width: 100%;
+            height: 70px;
+            padding: 20px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            font-size: 30px;
+            color: #ffffff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            box-sizing: border-box;
+        }
+
+        input[type="time"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+
+        .days-group {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .day-btn {
+            padding: 16px 10px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .day-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .day-btn.active {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.3), rgba(255, 107, 0, 0.3));
+            color: #ffffff;
+            border-color: rgba(255, 149, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 149, 0, 0.15);
+        }
+
+        button {
+            width: 100%;
+            padding: 20px;
+            margin-top: 28px;
+            border: none;
+            border-radius: 16px;
+            font-size: 28px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: -0.4px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF9500, #FF6B00);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255, 149, 0, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(52, 199, 89, 0.3);
+            color: #ffffff;
+            border: 1px solid rgba(52, 199, 89, 0.5);
+            box-shadow: 0 0 20px rgba(52, 199, 89, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(52, 199, 89, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 0 24px rgba(52, 199, 89, 0.25);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .btn-info {
+            background: rgba(0, 122, 255, 0.3);
+            color: #ffffff;
+            border: 1px solid rgba(0, 122, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 122, 255, 0.15);
+            font-size: 20px;
+            padding: 14px 20px;
+        }
+
+        .btn-info:hover {
+            background: rgba(0, 122, 255, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 0 24px rgba(0, 122, 255, 0.25);
+        }
+
+        .next-alarm {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .next-alarm strong {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+
+        /* Warning Banner */
+        .warning-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.95), rgba(255, 59, 48, 0.95));
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .warning-banner.show {
+            display: block;
+        }
+
+        /* Alarm Window Styles */
+        .alarm-window {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 2000;
+        }
+
+        body.alarm-active .alarm-window {
+            display: block;
+        }
+
+        .time-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            font-weight: 200;
+            color: rgba(255, 255, 255, 0.3);
+            user-select: none;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h2 {
+            color: #ffffff;
+            margin-bottom: 24px;
+            font-size: 32px;
+        }
+
+        .modal-content h3 {
+            color: rgba(255, 149, 0, 1);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+
+        .modal-content p, .modal-content ol, .modal-content ul {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .modal-content ol, .modal-content ul {
+            padding-left: 24px;
+        }
+
+        .modal-content li {
+            margin-bottom: 8px;
+        }
+
+        .modal-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 16px;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            font-size: 18px;
+            margin-top: 24px;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.active {
+            background: #30d158;
+            box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
+        }
+
+        .status-indicator.inactive {
+            background: #ff453a;
+        }
+    </style>
+</head>
+<body>
+    <div class="warning-banner" id="warningBanner">
+        ⚠️ Keep this tab active and in the foreground for the alarm to work reliably!
+    </div>
+
+    <div class="container">
+        <h1>Sunrise Alarm</h1>
+        <p class="subtitle">Wake up gently with a simulated sunrise</p>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="wakeTime">Wake Time</label>
+                <input type="time" id="wakeTime" value="07:00">
+            </div>
+
+            <div class="form-group">
+                <label for="duration">Duration (min)</label>
+                <input type="number" id="duration" min="1" max="60" value="30">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Days</label>
+            <div class="days-group">
+                <button class="day-btn" data-day="0">Sun</button>
+                <button class="day-btn active" data-day="1">Mon</button>
+                <button class="day-btn active" data-day="2">Tue</button>
+                <button class="day-btn active" data-day="3">Wed</button>
+                <button class="day-btn active" data-day="4">Thu</button>
+                <button class="day-btn active" data-day="5">Fri</button>
+                <button class="day-btn" data-day="6">Sat</button>
+            </div>
+        </div>
+
+        <div class="next-alarm" id="nextAlarm" style="display: none;"></div>
+
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <button class="btn-info" id="powerBtn" style="flex: 1;">⚡ Power Settings</button>
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; font-size: 16px; color: rgba(255, 255, 255, 0.6);">
+                <span class="status-indicator" id="wakeLockStatus"></span>
+                <span id="wakeLockText">Wake Lock: Checking...</span>
+            </div>
+        </div>
+
+        <button class="btn-secondary" id="testBtn">Start</button>
+    </div>
+
+    <div class="alarm-window" id="alarmWindow">
+        <div class="time-display" id="timeDisplay"></div>
+    </div>
+
+    <!-- Power Management Modal -->
+    <div class="modal" id="powerModal">
+        <div class="modal-content">
+            <h2>⚡ Power Management Settings</h2>
+            <p>For the most reliable alarm experience, configure your device to stay awake overnight:</p>
+
+            <h3>macOS</h3>
+            <ol>
+                <li>Open <strong>System Settings</strong></li>
+                <li>Click <strong>Lock Screen</strong> (or <strong>Battery</strong> on older versions)</li>
+                <li>Set "Turn display off on battery when inactive" to <strong>Never</strong></li>
+                <li>Set "Turn display off on power adapter when inactive" to <strong>Never</strong></li>
+            </ol>
+
+            <h3>Windows</h3>
+            <ol>
+                <li>Open <strong>Settings</strong> → <strong>System</strong> → <strong>Power & Sleep</strong></li>
+                <li>Under "Screen", set both options to <strong>Never</strong></li>
+                <li>Under "Sleep", set both options to <strong>Never</strong></li>
+            </ol>
+
+            <h3>Linux</h3>
+            <ol>
+                <li>Open your system's power settings (varies by distribution)</li>
+                <li>Disable automatic screen lock and sleep</li>
+                <li>For GNOME: Settings → Power → Automatic Suspend → <strong>Off</strong></li>
+            </ol>
+
+            <h3>Additional Tips</h3>
+            <ul>
+                <li><strong>Keep this browser tab active</strong> - Don't switch tabs or minimize the browser</li>
+                <li><strong>Leave your device plugged in</strong> overnight</li>
+                <li><strong>Disable screensaver</strong> to prevent it from activating</li>
+                <li>This app uses the Screen Wake Lock API to help keep your screen on</li>
+            </ul>
+
+            <button class="close-modal" onclick="closePowerModal()">Got it!</button>
+        </div>
+    </div>
+
+    <script src="alarm-utils.js"></script>
+    <script>
+        let wakeLock = null;
+        let selectedDays = [1, 2, 3, 4, 5];
+        let scheduledTimeout = null;
+        let alarmAnimationInterval = null;
+        let alarmStartTime = null;
+
+        // Load config from localStorage
+        function loadConfig() {
+            const config = localStorage.getItem('sunnyscreen-config');
+            if (config) {
+                return JSON.parse(config);
+            }
+            return {
+                enabled: false,
+                wakeTime: '07:00',
+                duration: 30,
+                daysOfWeek: [1, 2, 3, 4, 5]
+            };
+        }
+
+        // Save config to localStorage
+        function saveConfig(config) {
+            localStorage.setItem('sunnyscreen-config', JSON.stringify(config));
+            scheduleNextAlarm(config);
+        }
+
+        // Initialize from saved config
+        const config = loadConfig();
+        document.getElementById('wakeTime').value = config.wakeTime;
+        document.getElementById('duration').value = config.duration;
+        selectedDays = config.daysOfWeek;
+
+        // Update day buttons
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            const day = parseInt(btn.dataset.day);
+            if (selectedDays.includes(day)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Wake Lock API Support
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock acquired');
+                    updateWakeLockStatus(true);
+
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake lock released');
+                        updateWakeLockStatus(false);
+                    });
+                } catch (err) {
+                    console.error('Wake lock request failed:', err);
+                    updateWakeLockStatus(false);
+                }
+            } else {
+                console.warn('Wake Lock API not supported');
+                updateWakeLockStatus(false);
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+                updateWakeLockStatus(false);
+            }
+        }
+
+        function updateWakeLockStatus(active) {
+            const indicator = document.getElementById('wakeLockStatus');
+            const text = document.getElementById('wakeLockText');
+            if ('wakeLock' in navigator) {
+                indicator.className = 'status-indicator ' + (active ? 'active' : 'inactive');
+                text.textContent = 'Wake Lock: ' + (active ? 'Active' : 'Inactive');
+            } else {
+                indicator.className = 'status-indicator inactive';
+                text.textContent = 'Wake Lock: Not Supported';
+            }
+        }
+
+        // Check wake lock support on load
+        updateWakeLockStatus(false);
+
+        // Re-acquire wake lock when page becomes visible
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && document.body.classList.contains('alarm-active')) {
+                await requestWakeLock();
+                document.getElementById('warningBanner').classList.remove('show');
+            } else if (document.hidden && document.body.classList.contains('alarm-active')) {
+                document.getElementById('warningBanner').classList.add('show');
+            }
+        });
+
+        // Day selection
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const day = parseInt(btn.dataset.day);
+
+                if (selectedDays.includes(day)) {
+                    selectedDays = selectedDays.filter(d => d !== day);
+                    btn.classList.remove('active');
+                } else {
+                    selectedDays.push(day);
+                    btn.classList.add('active');
+                }
+
+                autoSaveConfig();
+            });
+        });
+
+        // Auto-save on wake time change
+        document.getElementById('wakeTime').addEventListener('change', autoSaveConfig);
+
+        // Auto-save on duration change
+        document.getElementById('duration').addEventListener('change', autoSaveConfig);
+
+        function autoSaveConfig() {
+            const wakeTimeInput = document.getElementById('wakeTime');
+            const durationInput = document.getElementById('duration');
+
+            // Validate wake time
+            if (!wakeTimeInput.value || !wakeTimeInput.value.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+                wakeTimeInput.value = '07:00';
+            }
+
+            // Validate duration
+            let duration = parseInt(durationInput.value);
+            if (isNaN(duration) || duration < 1 || duration > 60 || !Number.isInteger(Number(durationInput.value))) {
+                duration = 30;
+                durationInput.value = '30';
+            }
+
+            const config = {
+                enabled: true,
+                wakeTime: wakeTimeInput.value,
+                duration: duration,
+                daysOfWeek: selectedDays.sort((a, b) => a - b)
+            };
+
+            saveConfig(config);
+            updateNextAlarm();
+        }
+
+        // Schedule next alarm
+        function scheduleNextAlarm(config) {
+            if (scheduledTimeout) {
+                clearTimeout(scheduledTimeout);
+                scheduledTimeout = null;
+            }
+
+            if (!config.enabled) {
+                return;
+            }
+
+            const now = new Date();
+            const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek, now);
+            const msUntilAlarm = nextAlarm - now;
+
+            if (msUntilAlarm > 0 && msUntilAlarm < 2147483647) {
+                scheduledTimeout = setTimeout(() => {
+                    startAlarm(config.duration);
+                    // Reschedule after alarm
+                    setTimeout(() => {
+                        scheduleNextAlarm(loadConfig());
+                    }, 1000);
+                }, msUntilAlarm);
+
+                console.log(`Next alarm scheduled for: ${nextAlarm.toString()}`);
+            }
+        }
+
+        // Update next alarm display
+        function updateNextAlarm() {
+            const config = loadConfig();
+            const nextAlarmDiv = document.getElementById('nextAlarm');
+
+            if (!config.enabled || selectedDays.length === 0) {
+                nextAlarmDiv.style.display = 'none';
+                return;
+            }
+
+            const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek);
+            const duration = config.duration;
+            const sunriseStart = new Date(nextAlarm.getTime() - duration * 60000);
+
+            const options = { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+            const timeOnlyOptions = { hour: 'numeric', minute: '2-digit' };
+
+            nextAlarmDiv.innerHTML = `<strong>Next alarm:</strong> ${nextAlarm.toLocaleString('en-US', options)}<br><strong>Sunrise begins:</strong> ${sunriseStart.toLocaleString('en-US', timeOnlyOptions)}`;
+            nextAlarmDiv.style.display = 'block';
+        }
+
+        // Start alarm (test mode)
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const duration = parseInt(document.getElementById('duration').value);
+            await startAlarm(duration);
+        });
+
+        // Start alarm function
+        async function startAlarm(duration) {
+            // Request wake lock
+            await requestWakeLock();
+
+            // Request fullscreen
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (err) {
+                console.warn('Fullscreen request failed:', err);
+            }
+
+            // Show alarm window
+            document.body.classList.add('alarm-active');
+            alarmStartTime = Date.now();
+
+            // Start alarm animation
+            const DURATION_MS = duration * 60 * 1000;
+            const UPDATE_INTERVAL = 500;
+
+            function updateTimeDisplay() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
+            }
+
+            function interpolateColor(progress) {
+                if (progress < 0.15) {
+                    const p = progress / 0.15;
+                    return `rgb(${Math.floor(10 * p)}, ${Math.floor(10 * p)}, ${Math.floor(40 * p)})`;
+                } else if (progress < 0.35) {
+                    const p = (progress - 0.15) / 0.2;
+                    return `rgb(${Math.floor(10 + 190 * p)}, ${Math.floor(10 * (1 - p))}, ${Math.floor(40 * (1 - p))})`;
+                } else if (progress < 0.6) {
+                    const p = (progress - 0.35) / 0.25;
+                    return `rgb(${Math.floor(200 + 55 * p)}, ${Math.floor(140 * p)}, ${Math.floor(60 * p)})`;
+                } else {
+                    const p = (progress - 0.6) / 0.4;
+                    return `rgb(255, ${Math.floor(140 + 100 * p)}, ${Math.floor(60 + 40 * p)})`;
+                }
+            }
+
+            function animate() {
+                const elapsed = Date.now() - alarmStartTime;
+                const progress = Math.min(elapsed / DURATION_MS, 1);
+
+                const color = interpolateColor(progress);
+                document.getElementById('alarmWindow').style.backgroundColor = color;
+
+                const timeDisplay = document.getElementById('timeDisplay');
+                if (progress > 0.5) {
+                    timeDisplay.style.color = 'rgba(0, 0, 0, 0.3)';
+                } else {
+                    timeDisplay.style.color = 'rgba(255, 255, 255, 0.3)';
+                }
+
+                if (progress >= 1) {
+                    clearInterval(alarmAnimationInterval);
+                    document.getElementById('alarmWindow').style.backgroundColor = 'rgb(255, 240, 100)';
+                    timeDisplay.style.color = 'rgba(0, 0, 0, 0.3)';
+                }
+            }
+
+            updateTimeDisplay();
+            setInterval(updateTimeDisplay, 1000);
+            alarmAnimationInterval = setInterval(animate, UPDATE_INTERVAL);
+            animate();
+        }
+
+        // Stop alarm
+        async function stopAlarm() {
+            document.body.classList.remove('alarm-active');
+
+            if (alarmAnimationInterval) {
+                clearInterval(alarmAnimationInterval);
+                alarmAnimationInterval = null;
+            }
+
+            // Exit fullscreen
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            }
+
+            // Release wake lock
+            await releaseWakeLock();
+
+            // Reset alarm window
+            document.getElementById('alarmWindow').style.backgroundColor = '#000000';
+        }
+
+        // Click anywhere to stop alarm
+        document.getElementById('alarmWindow').addEventListener('click', stopAlarm);
+
+        // ESC key to stop alarm
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.body.classList.contains('alarm-active')) {
+                stopAlarm();
+            }
+        });
+
+        // Power settings modal
+        document.getElementById('powerBtn').addEventListener('click', () => {
+            document.getElementById('powerModal').classList.add('show');
+        });
+
+        function closePowerModal() {
+            document.getElementById('powerModal').classList.remove('show');
+        }
+
+        // Close modal on background click
+        document.getElementById('powerModal').addEventListener('click', (e) => {
+            if (e.target.id === 'powerModal') {
+                closePowerModal();
+            }
+        });
+
+        // Initialize
+        updateNextAlarm();
+        scheduleNextAlarm(loadConfig());
+    </script>
+</body>
+</html>
