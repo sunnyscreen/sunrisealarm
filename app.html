@@ -471,22 +471,24 @@
 
         // Load config from localStorage
         function loadConfig() {
-            const config = localStorage.getItem('sunnyscreen-config');
-            if (config) {
-                return JSON.parse(config);
+            const stored = localStorage.getItem('sunnyscreen-config');
+            if (stored) {
+                try {
+                    const config = JSON.parse(stored);
+                    return validateAndFixConfig(config);
+                } catch (e) {
+                    console.error('Failed to parse stored config:', e);
+                    return getDefaultConfig();
+                }
             }
-            return {
-                enabled: false,
-                wakeTime: '07:00',
-                duration: 30,
-                daysOfWeek: [1, 2, 3, 4, 5]
-            };
+            return getDefaultConfig();
         }
 
         // Save config to localStorage
         function saveConfig(config) {
-            localStorage.setItem('sunnyscreen-config', JSON.stringify(config));
-            scheduleNextAlarm(config);
+            const validatedConfig = validateAndFixConfig(config);
+            localStorage.setItem('sunnyscreen-config', JSON.stringify(validatedConfig));
+            scheduleNextAlarm(validatedConfig);
         }
 
         // Initialize from saved config
@@ -589,13 +591,13 @@
             const durationInput = document.getElementById('duration');
 
             // Validate wake time
-            if (!wakeTimeInput.value || !wakeTimeInput.value.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+            if (!isValidTimeFormat(wakeTimeInput.value)) {
                 wakeTimeInput.value = '07:00';
             }
 
             // Validate duration
             let duration = parseInt(durationInput.value);
-            if (isNaN(duration) || duration < 1 || duration > 60 || !Number.isInteger(Number(durationInput.value))) {
+            if (!isValidDuration(duration)) {
                 duration = 30;
                 durationInput.value = '30';
             }
@@ -650,8 +652,7 @@
             }
 
             const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek);
-            const duration = config.duration;
-            const sunriseStart = new Date(nextAlarm.getTime() - duration * 60000);
+            const sunriseStart = calculateSunriseStart(nextAlarm, config.duration);
 
             const options = { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
             const timeOnlyOptions = { hour: 'numeric', minute: '2-digit' };
