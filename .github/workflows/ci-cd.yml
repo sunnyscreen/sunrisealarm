@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   test:
-    name: Run All Tests
+    name: Run Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,20 +37,20 @@ jobs:
     - name: Run unit tests
       run: npm test
 
-    - name: Upload test results for dashboard
+    - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
         name: test-results
         path: test-results/
         retention-days: 90
 
-  deploy-pages:
-    name: Deploy to GitHub Pages
+  deploy-preview:
+    name: Deploy to Preview
     runs-on: ubuntu-latest
     needs: test
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: preview
+      url: https://bradnemer.github.io/sunnyscreen/preview/
 
     steps:
     - name: Checkout code
@@ -62,54 +62,155 @@ jobs:
         name: test-results
         path: test-results/
 
-    - name: Create videos manifest
+    - name: Create preview deployment
       run: |
-        # Create videos.json manifest for test dashboard
-        mkdir -p tests/test-results/playwright-output
+        mkdir -p _site/preview
+
+        # Copy app files to preview directory
+        cp index.html _site/preview/
+        cp app.html _site/preview/
+        cp alarm-utils.js _site/preview/
+        cp icon.png _site/preview/
 
         # Copy test results
-        cp -r test-results/* tests/test-results/ 2>/dev/null || true
+        mkdir -p _site/preview/tests/test-results
+        cp -r test-results/* _site/preview/tests/test-results/ 2>/dev/null || true
+        cp tests/index.html _site/preview/tests/
 
-        # Generate videos.json
-        cat > tests/test-results/videos.json << 'EOF'
+        # Create videos.json manifest
+        cat > _site/preview/tests/test-results/videos.json << 'EOF'
         []
         EOF
 
-        # If videos exist, create proper manifest
-        if [ -d "test-results/playwright-output" ] && [ "$(ls -A test-results/playwright-output/*.webm 2>/dev/null)" ]; then
-          echo "[" > tests/test-results/videos.json
-          first=true
-          for video in test-results/playwright-output/*.webm; do
-            if [ -f "$video" ]; then
-              filename=$(basename "$video")
-              name=$(echo "$filename" | sed 's/.webm$//' | sed 's/-/ /g')
-              [ "$first" = false ] && echo "," >> tests/test-results/videos.json
-              echo "  {\"name\": \"$name\", \"file\": \"$filename\"}" >> tests/test-results/videos.json
-              first=false
-            fi
-          done
-          echo "]" >> tests/test-results/videos.json
-        fi
+    - name: Upload preview artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '_site'
 
-    - name: Create deployment directory
+    - name: Deploy preview to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  validate-preview:
+    name: Validate Preview with E2E Tests
+    runs-on: ubuntu-latest
+    needs: deploy-preview
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Wait for preview deployment
+      run: |
+        echo "Waiting for preview deployment to be available..."
+        sleep 30
+
+        # Test if preview is accessible
+        max_attempts=10
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -f -s "https://bradnemer.github.io/sunnyscreen/preview/app.html" > /dev/null; then
+            echo "Preview deployment is live!"
+            break
+          fi
+          attempt=$((attempt + 1))
+          echo "Attempt $attempt/$max_attempts: Preview not ready yet, waiting..."
+          sleep 10
+        done
+
+    - name: Run E2E tests against preview
+      env:
+        BASE_URL: https://bradnemer.github.io/sunnyscreen/preview
+      run: npm run test:e2e:preview
+
+    - name: Upload E2E test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-results
+        path: test-results/
+        retention-days: 30
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: validate-preview
+    environment:
+      name: production
+      url: https://bradnemer.github.io/sunnyscreen/
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download unit test results
+      uses: actions/download-artifact@v4
+      with:
+        name: test-results
+        path: test-results/
+
+    - name: Download E2E test results
+      uses: actions/download-artifact@v4
+      with:
+        name: playwright-results
+        path: test-results/playwright/
+
+    - name: Create production deployment
       run: |
         mkdir -p _site
 
-        # Copy homepage, web app, and assets
+        # Copy app files to root
         cp index.html _site/
         cp app.html _site/
         cp alarm-utils.js _site/
         cp icon.png _site/
 
-        # Copy tests directory with results
-        cp -r tests _site/
+        # Copy tests directory
+        mkdir -p _site/tests/test-results
+        cp tests/index.html _site/tests/
 
-    - name: Upload Pages artifact
+        # Copy unit test results
+        cp -r test-results/* _site/tests/test-results/ 2>/dev/null || true
+
+        # Copy E2E test results
+        cp -r test-results/playwright/* _site/tests/test-results/ 2>/dev/null || true
+
+        # Create videos.json manifest
+        cat > _site/tests/test-results/videos.json << 'EOF'
+        []
+        EOF
+
+        # Keep preview directory (for continued access to staging)
+        mkdir -p _site/preview
+        cp index.html _site/preview/
+        cp app.html _site/preview/
+        cp alarm-utils.js _site/preview/
+        cp icon.png _site/preview/
+
+    - name: Upload production artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: '_site'
 
-    - name: Deploy to GitHub Pages
+    - name: Deploy production to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
 
+    - name: Deployment complete
+      run: |
+        echo "🎉 Production deployment successful!"
+        echo "🌐 Live at: https://bradnemer.github.io/sunnyscreen/"
+        echo "🔍 Preview at: https://bradnemer.github.io/sunnyscreen/preview/"
+        echo "📊 Tests at: https://bradnemer.github.io/sunnyscreen/tests/"
