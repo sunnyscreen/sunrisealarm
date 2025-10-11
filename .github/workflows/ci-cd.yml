@@ -82,6 +82,20 @@ jobs:
         []
         EOF
 
+        # Create root index for preview environment (redirects to preview)
+        cat > _site/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=/sunnyscreen/preview/">
+          <title>Preview Environment</title>
+        </head>
+        <body>
+          <p>Redirecting to preview environment... <a href="/sunnyscreen/preview/">Click here if not redirected</a></p>
+        </body>
+        </html>
+        EOF
+
     - name: Upload preview artifact
       uses: actions/upload-pages-artifact@v3
       with:
