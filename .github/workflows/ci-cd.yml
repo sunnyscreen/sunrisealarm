@@ -136,11 +136,11 @@ jobs:
         echo "Waiting for deployment to be available..."
         sleep 30
 
-        # Test if deployment is accessible
+        # Test if deployment is accessible (using custom domain)
         max_attempts=10
         attempt=0
         while [ $attempt -lt $max_attempts ]; do
-          if curl -f -s "https://bradnemer.github.io/sunnyscreen/preview/app.html" > /dev/null; then
+          if curl -f -s "https://sunnyscreen.art/preview/app.html" > /dev/null; then
             echo "Preview deployment is live!"
             break
           fi
@@ -151,7 +151,7 @@ jobs:
 
     - name: Run E2E tests against deployed preview
       env:
-        BASE_URL: https://bradnemer.github.io/sunnyscreen/preview
+        BASE_URL: https://sunnyscreen.art/preview
       run: npm run test:e2e:preview
 
     - name: Upload E2E test results
