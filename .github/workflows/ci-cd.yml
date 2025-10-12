@@ -91,6 +91,9 @@ jobs:
         []
         EOF
 
+        # Create .nojekyll file to bypass Jekyll processing
+        touch _site/.nojekyll
+
     - name: Upload production artifact
       uses: actions/upload-pages-artifact@v3
       with:
