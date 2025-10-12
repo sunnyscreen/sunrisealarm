@@ -119,12 +119,15 @@ function validateAndFixConfig(config) {
   return fixed;
 }
 
-module.exports = {
-  calculateNextAlarm,
-  calculateSunriseStart,
-  isValidTimeFormat,
-  isValidDuration,
-  isValidDaysOfWeek,
-  getDefaultConfig,
-  validateAndFixConfig
-};
+// Export for Node.js (Jest tests)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    calculateNextAlarm,
+    calculateSunriseStart,
+    isValidTimeFormat,
+    isValidDuration,
+    isValidDaysOfWeek,
+    getDefaultConfig,
+    validateAndFixConfig
+  };
+}
