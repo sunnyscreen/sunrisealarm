@@ -91,7 +91,7 @@ jobs:
         []
         EOF
 
-        # Create .nojekyll file to bypass Jekyll processing
+        # Create .nojekyll file to bypass Jekyll processing (forces CDN refresh)
         touch _site/.nojekyll
 
     - name: Upload production artifact
