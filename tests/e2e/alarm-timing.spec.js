@@ -17,7 +17,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').blur();
 
     // Wait for auto-save and next alarm calculation
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Check that the "Next alarm" display shows sunrise starting at 6:30
     const nextAlarmDiv = page.locator('#nextAlarm');
@@ -35,7 +35,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#duration').fill('1');
     await page.locator('#wakeTime').blur();
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const nextAlarmText = await page.locator('#nextAlarm').textContent();
 
@@ -50,7 +50,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#duration').fill('60');
     await page.locator('#wakeTime').blur();
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const nextAlarmText = await page.locator('#nextAlarm').textContent();
 
@@ -72,7 +72,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').blur();
 
     // Wait a few seconds
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(1000);
 
     // Alarm should NOT be active
     const body = page.locator('body');
@@ -86,7 +86,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     let nextAlarmText = await page.locator('#nextAlarm').textContent();
     expect(nextAlarmText).toMatch(/6:30/);
@@ -94,7 +94,7 @@ test.describe('Alarm Timing Validation', () => {
     // Change duration to 45 minutes
     await page.locator('#duration').fill('45');
     await page.locator('#duration').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Sunrise should now start at 6:15 (45 min before 7:00)
     nextAlarmText = await page.locator('#nextAlarm').textContent();
@@ -108,7 +108,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     let nextAlarmText = await page.locator('#nextAlarm').textContent();
     expect(nextAlarmText).toMatch(/6:30/);
@@ -116,7 +116,7 @@ test.describe('Alarm Timing Validation', () => {
     // Change wake time to 8:00
     await page.locator('#wakeTime').fill('08:00');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Sunrise should now start at 7:30 (30 min before 8:00)
     nextAlarmText = await page.locator('#nextAlarm').textContent();
@@ -130,7 +130,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:30');
     await page.locator('#duration').fill('20');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Verify sunrise time
     let nextAlarmText = await page.locator('#nextAlarm').textContent();
@@ -138,7 +138,7 @@ test.describe('Alarm Timing Validation', () => {
 
     // Reload page
     await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Sunrise time should still be correct
     nextAlarmText = await page.locator('#nextAlarm').textContent();
@@ -151,7 +151,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const nextAlarmText = await page.locator('#nextAlarm').textContent();
 
@@ -170,7 +170,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('00:15');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const nextAlarmText = await page.locator('#nextAlarm').textContent();
 
@@ -186,7 +186,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const initialText = await page.locator('#nextAlarm').textContent();
     expect(initialText).toContain('Sunrise begins:');
@@ -199,7 +199,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('[data-day="5"]').click();
     await page.locator('[data-day="0"]').click(); // Enable Sunday
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const updatedText = await page.locator('#nextAlarm').textContent();
 
@@ -218,7 +218,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('30');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1000);
 
     // Check if console logs contain scheduling information
     const schedulingLogs = consoleMessages.filter(msg =>
@@ -245,7 +245,7 @@ test.describe('Alarm Timing Validation', () => {
       await page.locator('#wakeTime').fill(config.wakeTime);
       await page.locator('#duration').fill(config.duration);
       await page.locator('#wakeTime').blur();
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(500);
 
       const nextAlarmText = await page.locator('#nextAlarm').textContent();
       expect(nextAlarmText).toMatch(new RegExp(config.expectedSunrise));
@@ -259,7 +259,7 @@ test.describe('Alarm Timing Validation', () => {
     await page.locator('#wakeTime').fill('07:00');
     await page.locator('#duration').fill('1');
     await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     let nextAlarmText = await page.locator('#nextAlarm').textContent();
     expect(nextAlarmText).toMatch(/6:59/);
@@ -267,7 +267,7 @@ test.describe('Alarm Timing Validation', () => {
     // Test maximum duration (60 minutes)
     await page.locator('#duration').fill('60');
     await page.locator('#duration').blur();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     nextAlarmText = await page.locator('#nextAlarm').textContent();
     expect(nextAlarmText).toMatch(/6:00|6:0{1,2}\s*AM/);
