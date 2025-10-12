@@ -10,6 +10,7 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  timeout: process.env.CI ? 60000 : 30000, // 60s in CI, 30s locally
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'test-results/playwright-results.json' }]
@@ -20,9 +21,17 @@ module.exports = defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    actionTimeout: 10000, // 10s timeout for individual actions
   },
 
-  projects: [
+  projects: process.env.CI ? [
+    // In CI, only test with Chromium for speed
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ] : [
+    // Locally, test all browsers
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },

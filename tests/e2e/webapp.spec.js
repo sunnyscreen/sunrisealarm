@@ -195,7 +195,7 @@ test.describe('Sunnyscreen Web App', () => {
     await testBtn.click();
 
     // Wait for alarm to activate
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Alarm window should be visible
     await expect(page.locator('body')).toHaveClass(/alarm-active/);
@@ -217,7 +217,7 @@ test.describe('Sunnyscreen Web App', () => {
 
     // Start alarm
     await testBtn.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Verify alarm is active
     await expect(page.locator('body')).toHaveClass(/alarm-active/);
@@ -237,7 +237,7 @@ test.describe('Sunnyscreen Web App', () => {
 
     // Start alarm
     await testBtn.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Verify alarm is active
     await expect(page.locator('body')).toHaveClass(/alarm-active/);
