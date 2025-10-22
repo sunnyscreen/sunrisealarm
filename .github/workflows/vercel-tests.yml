@@ -85,8 +85,7 @@ jobs:
     needs: e2e-tests
     if: |
       github.event_name == 'deployment_status' &&
-      github.event.deployment_status.state == 'success' &&
-      github.head_branch == 'preview'
+      github.event.deployment_status.state == 'success'
 
     steps:
     - name: Checkout code
@@ -95,12 +94,26 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Check if preview branch
+      id: check_branch
+      run: |
+        CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        echo "Current branch: $CURRENT_BRANCH"
+        if [ "$CURRENT_BRANCH" != "preview" ]; then
+          echo "Not on preview branch, skipping promotion"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Configure git
+      if: steps.check_branch.outputs.skip != 'true'
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
     - name: Merge preview to main
+      if: steps.check_branch.outputs.skip != 'true'
       run: |
         git fetch origin main:main
         git checkout main
@@ -113,6 +126,7 @@ jobs:
         git push origin main
 
     - name: Deployment initiated
+      if: steps.check_branch.outputs.skip != 'true'
       run: |
         echo "✅ E2E tests passed on preview"
         echo "🚀 Merged preview to main"
