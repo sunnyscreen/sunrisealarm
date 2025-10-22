@@ -580,10 +580,12 @@
             });
         });
 
-        // Auto-save on wake time change
+        // Auto-save on wake time change (both input and change events)
+        document.getElementById('wakeTime').addEventListener('input', autoSaveConfig);
         document.getElementById('wakeTime').addEventListener('change', autoSaveConfig);
 
-        // Auto-save on duration change
+        // Auto-save on duration change (both input and change events)
+        document.getElementById('duration').addEventListener('input', autoSaveConfig);
         document.getElementById('duration').addEventListener('change', autoSaveConfig);
 
         function autoSaveConfig() {
@@ -784,7 +786,10 @@
             }
         });
 
-        // Initialize
+        // Initialize - save config to ensure enabled is true if days are selected
+        if (selectedDays.length > 0) {
+            autoSaveConfig();
+        }
         updateNextAlarm();
         scheduleNextAlarm(loadConfig());
     </script>

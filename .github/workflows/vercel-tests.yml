@@ -1,0 +1,140 @@
+name: Test Suite
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  deployment_status:
+
+jobs:
+  # Run unit tests on every push
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run unit tests
+      run: npm test
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-results
+        path: test-results/
+        retention-days: 30
+
+  # Run E2E tests after Vercel deployment succeeds
+  e2e-tests:
+    name: E2E Tests (Preview)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run E2E tests against Vercel preview
+      id: e2e-tests
+      env:
+        # Use custom domain instead of Vercel's auto-generated URL
+        BASE_URL: https://preview.sunnyscreen.art
+        PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
+        PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      run: |
+        echo "Testing deployment at: $BASE_URL"
+        npm run test:e2e:preview
+
+    - name: Upload E2E test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-test-results
+        path: test-results/
+        retention-days: 30
+
+  # Promote to production after E2E tests pass on preview branch
+  promote-to-production:
+    name: Promote to Production
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    permissions:
+      contents: write  # Required to push to main branch
+    if: |
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check if preview branch
+      id: check_branch
+      run: |
+        # GitHub Actions checks out in detached HEAD, so check remote branch
+        git fetch origin preview
+        CURRENT_SHA=$(git rev-parse HEAD)
+        PREVIEW_SHA=$(git rev-parse origin/preview)
+        echo "Current SHA: $CURRENT_SHA"
+        echo "Preview SHA: $PREVIEW_SHA"
+        if [ "$CURRENT_SHA" != "$PREVIEW_SHA" ]; then
+          echo "Not on preview branch commit, skipping promotion"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "On preview branch commit, proceeding with promotion"
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Configure git
+      if: steps.check_branch.outputs.skip != 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Merge preview to main
+      if: steps.check_branch.outputs.skip != 'true'
+      run: |
+        git fetch origin main:main
+        git checkout main
+        git merge origin/preview --no-ff -m "Auto-promote preview to production after E2E tests passed
+
+        Preview deployment: ${{ github.event.deployment_status.target_url }}
+        E2E tests: Passed ✅
+
+        🤖 Automated by GitHub Actions"
+        git push origin main
+
+    - name: Deployment initiated
+      if: steps.check_branch.outputs.skip != 'true'
+      run: |
+        echo "✅ E2E tests passed on preview"
+        echo "🚀 Merged preview to main"
+        echo "⏳ Vercel will now deploy to production (sunnyscreen.art)"

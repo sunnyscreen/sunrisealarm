@@ -22,6 +22,10 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10000, // 10s timeout for individual actions
+    // Add Vercel protection bypass header if provided
+    extraHTTPHeaders: process.env.PLAYWRIGHT_BYPASS_HEADER && process.env.PLAYWRIGHT_BYPASS_VALUE ? {
+      [process.env.PLAYWRIGHT_BYPASS_HEADER]: process.env.PLAYWRIGHT_BYPASS_VALUE
+    } : {},
   },
 
   projects: process.env.CI ? [
