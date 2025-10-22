@@ -97,12 +97,17 @@ jobs:
     - name: Check if preview branch
       id: check_branch
       run: |
-        CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-        echo "Current branch: $CURRENT_BRANCH"
-        if [ "$CURRENT_BRANCH" != "preview" ]; then
-          echo "Not on preview branch, skipping promotion"
+        # GitHub Actions checks out in detached HEAD, so check remote branch
+        git fetch origin preview
+        CURRENT_SHA=$(git rev-parse HEAD)
+        PREVIEW_SHA=$(git rev-parse origin/preview)
+        echo "Current SHA: $CURRENT_SHA"
+        echo "Preview SHA: $PREVIEW_SHA"
+        if [ "$CURRENT_SHA" != "$PREVIEW_SHA" ]; then
+          echo "Not on preview branch commit, skipping promotion"
           echo "skip=true" >> $GITHUB_OUTPUT
         else
+          echo "On preview branch commit, proceeding with promotion"
           echo "skip=false" >> $GITHUB_OUTPUT
         fi
 
