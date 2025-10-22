@@ -414,6 +414,14 @@
             </div>
         </div>
 
+        <div style="display: flex; gap: 12px; margin-top: 12px;" id="authButtons">
+            <button class="btn-info" id="adminBtn" style="flex: 1; display: none;">Admin Panel</button>
+            <button class="btn-info" id="logoutBtn" style="flex: 1; display: none;">Logout</button>
+            <button class="btn-info" id="loginBtn" style="flex: 1; display: none;">Login / Signup</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 12px; font-size: 14px; color: rgba(255, 255, 255, 0.5);" id="userInfo"></div>
+
         <button class="btn-secondary" id="testBtn">Start</button>
     </div>
 
@@ -462,15 +470,31 @@
     </div>
 
     <script src="alarm-utils.js"></script>
+    <script src="lib/auth-client.js"></script>
+    <script src="lib/api-client.js"></script>
     <script>
         let wakeLock = null;
         let selectedDays = [1, 2, 3, 4, 5];
         let scheduledTimeout = null;
         let alarmAnimationInterval = null;
         let alarmStartTime = null;
+        let currentUser = null;
+        let useCloudStorage = false;
 
-        // Load config from localStorage
-        function loadConfig() {
+        // Load config from localStorage or cloud
+        async function loadConfig() {
+            if (useCloudStorage && currentUser) {
+                try {
+                    const response = await alarmsAPI.get();
+                    if (response.success && response.alarms) {
+                        return validateAndFixConfig(response.alarms);
+                    }
+                } catch (error) {
+                    console.error('Failed to load from cloud:', error);
+                }
+            }
+
+            // Fall back to localStorage
             const stored = localStorage.getItem('sunnyscreen-config');
             if (stored) {
                 try {
@@ -484,28 +508,85 @@
             return getDefaultConfig();
         }
 
-        // Save config to localStorage
-        function saveConfig(config) {
+        // Save config to localStorage and optionally cloud
+        async function saveConfig(config) {
             const validatedConfig = validateAndFixConfig(config);
             localStorage.setItem('sunnyscreen-config', JSON.stringify(validatedConfig));
+
+            if (useCloudStorage && currentUser) {
+                try {
+                    await alarmsAPI.save(validatedConfig);
+                } catch (error) {
+                    console.error('Failed to save to cloud:', error);
+                }
+            }
+
             scheduleNextAlarm(validatedConfig);
         }
 
-        // Initialize from saved config
-        const config = loadConfig();
-        document.getElementById('wakeTime').value = config.wakeTime;
-        document.getElementById('duration').value = config.duration;
-        selectedDays = config.daysOfWeek;
-
-        // Update day buttons
-        document.querySelectorAll('.day-btn').forEach(btn => {
-            const day = parseInt(btn.dataset.day);
-            if (selectedDays.includes(day)) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
+        // Initialize auth and load config
+        async function initApp() {
+            // Check if user is logged in
+            if (typeof verifyAuth !== 'undefined') {
+                currentUser = await verifyAuth();
+                if (currentUser) {
+                    useCloudStorage = true;
+                    updateAuthUI();
+                } else {
+                    updateAuthUI();
+                }
             }
-        });
+
+            // Load config
+            const config = await loadConfig();
+            document.getElementById('wakeTime').value = config.wakeTime;
+            document.getElementById('duration').value = config.duration;
+            selectedDays = config.daysOfWeek;
+
+            // Update day buttons
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                const day = parseInt(btn.dataset.day);
+                if (selectedDays.includes(day)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Initialize - save config to ensure enabled is true if days are selected
+            if (selectedDays.length > 0) {
+                await autoSaveConfig();
+            }
+            updateNextAlarm();
+            scheduleNextAlarm(await loadConfig());
+        }
+
+        function updateAuthUI() {
+            const adminBtn = document.getElementById('adminBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginBtn = document.getElementById('loginBtn');
+            const userInfo = document.getElementById('userInfo');
+
+            if (currentUser) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+
+                if (currentUser.role === 'admin') {
+                    adminBtn.style.display = 'block';
+                }
+
+                const roleEmoji = currentUser.role === 'admin' ? '👑' : currentUser.role === 'premium' ? '⭐' : '🆓';
+                userInfo.textContent = `${roleEmoji} Logged in as ${currentUser.email} (${currentUser.role})`;
+                userInfo.style.display = 'block';
+            } else {
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                adminBtn.style.display = 'none';
+                userInfo.textContent = 'Using local storage (not synced)';
+                userInfo.style.display = 'block';
+            }
+        }
+
 
         // Wake Lock API Support
         async function requestWakeLock() {
@@ -576,19 +657,19 @@
                     btn.classList.add('active');
                 }
 
-                autoSaveConfig();
+                await autoSaveConfig();
             });
         });
 
         // Auto-save on wake time change (both input and change events)
-        document.getElementById('wakeTime').addEventListener('input', autoSaveConfig);
-        document.getElementById('wakeTime').addEventListener('change', autoSaveConfig);
+        document.getElementById('wakeTime').addEventListener('input', async () => await autoSaveConfig());
+        document.getElementById('wakeTime').addEventListener('change', async () => await autoSaveConfig());
 
         // Auto-save on duration change (both input and change events)
-        document.getElementById('duration').addEventListener('input', autoSaveConfig);
-        document.getElementById('duration').addEventListener('change', autoSaveConfig);
+        document.getElementById('duration').addEventListener('input', async () => await autoSaveConfig());
+        document.getElementById('duration').addEventListener('change', async () => await autoSaveConfig());
 
-        function autoSaveConfig() {
+        async function autoSaveConfig() {
             const wakeTimeInput = document.getElementById('wakeTime');
             const durationInput = document.getElementById('duration');
 
@@ -611,12 +692,12 @@
                 daysOfWeek: selectedDays.sort((a, b) => a - b)
             };
 
-            saveConfig(config);
+            await saveConfig(config);
             updateNextAlarm();
         }
 
         // Schedule next alarm
-        function scheduleNextAlarm(config) {
+        async function scheduleNextAlarm(config) {
             if (scheduledTimeout) {
                 clearTimeout(scheduledTimeout);
                 scheduledTimeout = null;
@@ -634,8 +715,8 @@
                 scheduledTimeout = setTimeout(() => {
                     startAlarm(config.duration);
                     // Reschedule after alarm
-                    setTimeout(() => {
-                        scheduleNextAlarm(loadConfig());
+                    setTimeout(async () => {
+                        scheduleNextAlarm(await loadConfig());
                     }, 1000);
                 }, msUntilAlarm);
 
@@ -644,8 +725,8 @@
         }
 
         // Update next alarm display
-        function updateNextAlarm() {
-            const config = loadConfig();
+        async function updateNextAlarm() {
+            const config = await loadConfig();
             const nextAlarmDiv = document.getElementById('nextAlarm');
 
             if (!config.enabled || selectedDays.length === 0) {
@@ -786,12 +867,23 @@
             }
         });
 
-        // Initialize - save config to ensure enabled is true if days are selected
-        if (selectedDays.length > 0) {
-            autoSaveConfig();
-        }
-        updateNextAlarm();
-        scheduleNextAlarm(loadConfig());
+        // Auth button handlers
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = '/auth.html';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (typeof logout !== 'undefined') {
+                logout();
+            }
+        });
+
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            window.location.href = '/admin.html';
+        });
+
+        // Initialize app
+        initApp();
     </script>
 </body>
 </html>

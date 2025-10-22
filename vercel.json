@@ -19,5 +19,8 @@
       "source": "/tests",
       "destination": "/tests/index.html"
     }
-  ]
+  ],
+  "env": {
+    "JWT_SECRET": "@jwt_secret"
+  }
 }
