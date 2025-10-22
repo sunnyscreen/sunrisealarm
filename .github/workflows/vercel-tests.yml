@@ -63,11 +63,10 @@ jobs:
       id: e2e-tests
       env:
         BASE_URL: ${{ github.event.deployment_status.target_url }}
-        VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
+        PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       run: |
         echo "Testing deployment at: $BASE_URL"
-        # Append bypass secret to BASE_URL for protected deployments
-        export BASE_URL="${BASE_URL}?x-vercel-protection-bypass=${VERCEL_AUTOMATION_BYPASS_SECRET}"
         npm run test:e2e:preview
 
     - name: Upload E2E test results
