@@ -86,7 +86,7 @@ jobs:
     if: |
       github.event_name == 'deployment_status' &&
       github.event.deployment_status.state == 'success' &&
-      github.ref == 'refs/heads/preview'
+      github.head_branch == 'preview'
 
     steps:
     - name: Checkout code
