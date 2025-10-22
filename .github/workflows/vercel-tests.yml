@@ -85,7 +85,6 @@ jobs:
     if: |
       github.event_name == 'deployment_status' &&
       github.event.deployment_status.state == 'success' &&
-      github.event.deployment_status.environment == 'Preview' &&
       github.ref == 'refs/heads/preview'
 
     steps:
