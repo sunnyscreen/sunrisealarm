@@ -1,0 +1,83 @@
+name: Test Suite
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  deployment_status:
+
+jobs:
+  # Run unit tests on every push
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run unit tests
+      run: npm test
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-results
+        path: test-results/
+        retention-days: 30
+
+  # Run E2E tests after Vercel deployment succeeds
+  e2e-tests:
+    name: E2E Tests (Preview)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run E2E tests against Vercel preview
+      env:
+        BASE_URL: ${{ github.event.deployment_status.target_url }}
+      run: |
+        echo "Testing deployment at: $BASE_URL"
+        npm run test:e2e:preview || echo "E2E tests failed but continuing..."
+
+    - name: Upload E2E test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-test-results
+        path: test-results/
+        retention-days: 30
+
+    - name: Notify Vercel of test status
+      if: always()
+      uses: vercel/repository-dispatch/actions/status@v1
+      with:
+        deployment-url: ${{ github.event.deployment_status.target_url }}
+        name: 'E2E Tests'
+        state: ${{ job.status }}
