@@ -1,8 +1,7 @@
 {
   "name": "sunnyscreen",
   "version": "1.0.0",
-  "description": "Web-based sunrise alarm app that gently brightens your screen to wake you up",
-  "main": "app.html",
+  "description": "Pure web-based sunrise alarm app that gently brightens your screen to wake you up",
   "scripts": {
     "start": "node test-server.js",
     "test": "node run-tests-with-json.js",
