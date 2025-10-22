@@ -4,45 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Sunnyscreen** is an Electron-based sunrise alarm application that gradually brightens the screen to simulate a sunrise and wake users gently. The app runs on macOS and includes:
-- Configuration window for alarm settings
-- Full-screen alarm window with gradual brightness animation
+**Sunnyscreen** is a pure web-based sunrise alarm application that gradually brightens the screen to simulate a sunrise and wake users gently. The app runs in any modern web browser and includes:
+- Single-page web application for alarm configuration and display
+- Full-screen alarm animation with gradual brightness effect
 - Persistent alarm scheduling with day-of-week selection
-- Power save blocker to prevent screen dimming during alarm
+- Wake Lock API to prevent screen dimming during alarm
+- No installation required - works instantly in the browser
 
 ## Core Architecture
 
-### Two-Window System
-The app uses Electron's multi-window architecture:
+### Single-Page Web Application
+The app is a self-contained web application (`app.html`):
 
-1. **Main Window** (`config.html`): Configuration interface where users set:
-   - Wake time (HH:MM format)
-   - Sunrise duration (1-60 minutes)
-   - Active days of week (0=Sunday, 6=Saturday)
-   - Alarm enabled/disabled state
+**Configuration Interface**:
+- Wake time selection (HH:MM format)
+- Sunrise duration (1-60 minutes)
+- Day-of-week selection (0=Sunday, 6=Saturday)
+- Test alarm button for immediate preview
+- Power management settings modal
 
-2. **Alarm Window** (`alarm.html`): Full-screen window that:
-   - Displays gradual brightness animation from black to white
-   - Shows current time and simulated sunrise effect
-   - Blocks power save/screensaver during alarm
-   - Closes on any user interaction
+**Alarm Display**:
+- Full-screen overlay with gradual brightness animation
+- Smooth color transitions from deep blue through red/orange to bright yellow
+- Real-time clock display
+- Dismissible by clicking anywhere or pressing Escape
 
 ### State Management
-- Configuration is stored in `config.json` (in Electron's userData directory)
-- `main.js` handles IPC communication between windows and manages alarm scheduling
+- Configuration stored in browser's `localStorage`
 - `alarm-utils.js` contains pure functions for alarm calculations and validation
 - All alarm logic is deterministic and testable
+- No backend required - fully client-side application
 
 ### Alarm Scheduling Logic
-Key concept: The app calculates the next valid alarm time by:
+The app calculates the next valid alarm time by:
 1. Checking if today is a valid day AND time hasn't passed
 2. If not, advancing to the next valid day of week
-3. Using `setTimeout` to trigger the alarm window at the calculated time
+3. Using `setTimeout` to trigger the alarm overlay at the calculated time
 4. Automatically rescheduling after each alarm fires
+5. Persisting state across page refreshes via localStorage
 
 ## Testing Architecture
 
-### Three-Tier Test Strategy
+### Two-Tier Test Strategy
 
 1. **Unit Tests** (Jest)
    - Test `alarm-utils.js` pure functions
@@ -50,65 +53,47 @@ Key concept: The app calculates the next valid alarm time by:
    - Run with: `npm test`
    - Watch mode: `npm run test:watch`
 
-2. **Local E2E Tests** (Playwright)
-   - Test Electron app functionality (`tests/e2e/app.spec.js`)
-   - Test local dashboard UI (`tests/e2e/dashboard.spec.js`)
-   - Run with: `npm run test:e2e`
-   - **Important**: Excludes `dashboard-deployed.spec.js` via `testIgnore` config
-
-3. **Post-Deployment E2E Tests** (Playwright)
-   - Test live deployed dashboard (`tests/e2e/dashboard-deployed.spec.js`)
-   - Run with: `npm run test:e2e:deployed` (sets `TEST_DEPLOYED=true`)
-   - Only runs against https://bradnemer.github.io/sunnyscreen/tests/
+2. **E2E Tests** (Playwright)
+   - Test web app functionality (`tests/e2e/webapp.spec.js`)
+   - Test alarm timing logic (`tests/e2e/alarm-timing.spec.js`)
+   - Run locally with: `npm run test:e2e`
+   - Run against preview deployment: `npm run test:e2e:preview`
 
 ### Test Dashboard
-- Interactive dashboard at `/tests` showing all test results with videos
-- Three tabs: Unit Tests, Local E2E Tests, Post-Deployment E2E Tests
+- Interactive dashboard at `/tests` showing all test results
 - Local server: `npm run test:dashboard` → http://localhost:3000/tests
-- Deployed version: Auto-updated on every merge to main
+- Deployed version: Auto-updated on deployments via Vercel
 
 ## CI/CD Pipeline
 
-### Six-Stage Pipeline (on push to main)
-The `.github/workflows/ci-cd.yml` workflow runs these jobs sequentially:
+### Vercel Deployment Pipeline
+The `.github/workflows/vercel-tests.yml` workflow runs on every push:
 
-1. **version**: Auto-generates version number using GitHub run number (1.0.X)
-2. **build**: Builds macOS .dmg and .zip on macOS runner
-3. **test**: Runs unit tests + local E2E tests, uploads results as artifacts
-4. **release**: Creates GitHub Release with macOS binaries
-5. **deploy-pages**: Deploys homepage and test dashboard with pre-deployment results
-6. **validate-deployment**: Tests live site, uploads post-deployment results
-7. **redeploy-with-validation**: Combines all results and redeploys dashboard
+1. **unit-tests**: Runs Jest unit tests for pure functions
+2. **e2e-tests**: Runs after Vercel deployment succeeds, tests preview site
+3. **promote-to-production**: Auto-merges preview → main after E2E tests pass
 
-### Two-Stage Dashboard Deployment
-The pipeline deploys the dashboard twice:
-- **First deployment**: Contains pre-deployment test results (unit + local E2E)
-- **Second deployment**: Adds post-deployment validation results to dashboard
-
-This ensures the live dashboard always shows complete test coverage including validation of the deployed site itself.
+### Preview → Production Flow
+- Push to `preview` branch triggers Vercel preview deployment
+- After deployment succeeds, E2E tests run against preview URL
+- If tests pass, preview branch auto-merges to `main`
+- Main branch auto-deploys to production via Vercel
 
 ## Common Development Commands
 
 ### Running the App
 ```bash
-npm start                    # Launch Electron app locally
+npm start                    # Start local development server on http://localhost:3000
+                             # Opens web app at http://localhost:3000/app
+npm run test:dashboard       # Same as npm start (serves test dashboard)
 ```
 
 ### Testing
 ```bash
 npm test                     # Run unit tests with JSON output
 npm run test:watch           # Run unit tests in watch mode
-npm run test:e2e             # Run local E2E tests (excludes deployed tests)
-npm run test:e2e:deployed    # Run post-deployment tests against live site
-npm run test:all             # Run unit + local E2E tests sequentially
-npm run test:dashboard       # Start local test dashboard server on :3000
-```
-
-### Building
-```bash
-npm run build:mac            # Build macOS .dmg and .zip
-npm run build:win            # Build Windows installers
-npm run build:linux          # Build Linux packages
+npm run test:e2e             # Run E2E tests against local server
+npm run test:e2e:preview     # Run E2E tests against Vercel preview
 ```
 
 ### Running Single Tests
@@ -120,10 +105,10 @@ npx jest alarm-utils.test.js
 npx jest --testNamePattern="calculateNextAlarm"
 
 # Playwright - run specific test file
-npx playwright test tests/e2e/app.spec.js
+npx playwright test tests/e2e/webapp.spec.js
 
 # Playwright - run specific test by name
-npx playwright test -g "should launch and display config window"
+npx playwright test -g "should load the app with default configuration"
 
 # Playwright - debug mode with headed browser
 npx playwright test --debug
@@ -131,31 +116,24 @@ npx playwright test --debug
 
 ## Important Implementation Notes
 
-### Electron Configuration
-- **Node Integration**: Enabled (`nodeIntegration: true`) - required for IPC
-- **Context Isolation**: Disabled - allows renderer access to Node APIs
-- **Code Signing**: Disabled for development (`identity: null`, `gatekeeperAssess: false`)
-- Users must bypass macOS Gatekeeper: Right-click → Open, or run `xattr -cr "/Applications/Sunrise Alarm.app"`
+### Browser Compatibility
+- Requires modern browser with ES6+ support
+- Wake Lock API support recommended (Chrome 84+, Edge 84+, Safari 16.4+)
+- Falls back gracefully if Wake Lock API not available
+- Uses localStorage for persistence (5-10MB available in most browsers)
 
-### Test Configuration Quirks
-- `playwright.config.js` uses `testIgnore` with env var to exclude deployed tests from normal runs
-- `run-tests-with-json.js` is a wrapper around Jest that generates JSON output (workaround for jest-json-reporter issues)
-- Playwright records videos for ALL tests (passed and failed) via `video: 'on'`
-- Test artifacts are uploaded to GitHub Actions with 90-day retention
+### Wake Lock API
+The app uses the Screen Wake Lock API to prevent:
+- Screen dimming during alarm
+- System sleep during alarm
 
-### IPC Communication Pattern
-The app uses Electron's IPC for window communication:
-- Renderer → Main: `ipcRenderer.send('event-name', data)`
-- Main → Renderer: `event.reply('event-name', data)`
-- Main process handlers are in `main.js` (lines 142-187)
+This is requested when alarm starts and released when it ends. If not supported, app displays warning banner to keep tab active.
 
-### Power Management
-The alarm window uses `powerSaveBlocker` to prevent:
-- System sleep
-- Display sleep
-- Screensaver activation
-
-This is critical for alarm functionality - blocker is started when alarm window opens and stopped when it closes.
+### Test Configuration
+- `run-tests-with-json.js` is a wrapper around Jest that generates JSON output
+- Playwright tests run against local server (localhost:3000) or Vercel preview
+- Test artifacts include videos of failed tests
+- E2E tests automatically wait for Vercel deployment before running in CI
 
 ### Time Handling
 - All times internally use JavaScript `Date` objects
@@ -165,33 +143,33 @@ This is critical for alarm functionality - blocker is started when alarm window 
 
 ## File Structure Notes
 
-### Application Files (bundled in builds)
-- `main.js` - Electron main process, window management, IPC handlers
+### Application Files
+- `app.html` - Main web application (config + alarm display)
 - `alarm-utils.js` - Pure utility functions for alarm calculations
-- `config.html` - Configuration window UI
-- `alarm.html` - Full-screen alarm window UI
+- `test-server.js` - Express server for local development
 - `icon.png` - App icon
 
 ### Test Files
-- `tests/e2e/app.spec.js` - E2E tests for Electron app
-- `tests/e2e/dashboard.spec.js` - E2E tests for local dashboard
-- `tests/e2e/dashboard-deployed.spec.js` - E2E tests for deployed dashboard
-- `__tests__/alarm-utils.test.js` - Unit tests for alarm utilities
+- `tests/e2e/webapp.spec.js` - E2E tests for web app functionality
+- `tests/e2e/alarm-timing.spec.js` - E2E tests for alarm scheduling logic
+- `__tests__/*.test.js` - Unit tests for alarm utility functions
 
 ### Configuration Files
 - `jest.config.js` - Jest test configuration with HTML reporter
 - `playwright.config.js` - Playwright E2E test configuration
 - `run-tests-with-json.js` - Custom Jest runner for JSON output
-- `test-server.js` - Express server for local test dashboard
+- `vercel.json` - Vercel deployment configuration
 
-### GitHub Pages
-- `index.html` - Homepage (deployed at root)
-- `tests/index.html` - Test dashboard (deployed at /tests/)
-- Both auto-deploy on merge to main via CI/CD workflow
+### Deployed Pages
+- `index.html` - Marketing homepage
+- `app.html` - Web application
+- `tests/index.html` - Test dashboard
+- All deployed via Vercel on push to main
 
 ## Known Constraints
 
-- macOS builds require disabling code signing (no Apple Developer certificate)
+- Browser tab must remain active for alarm to fire reliably (Wake Lock API helps but doesn't guarantee)
 - Alarm scheduling uses `setTimeout` which has ~24.8 day max - handled by rescheduling
-- Node.js child processes and Electron require different test approaches (Jest vs Playwright)
-- GitHub Pages deployment is two-stage to include post-deployment validation results
+- localStorage limited to ~5-10MB (more than sufficient for alarm config)
+- Fullscreen API requires user gesture - triggered by alarm start button
+- Wake Lock API not supported in all browsers (Firefox currently lacks support)

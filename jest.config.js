@@ -3,7 +3,6 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.js', '**/*.test.js'],
   collectCoverageFrom: [
     'alarm-utils.js',
-    '!main.js',  // Exclude main.js as it requires Electron
     '!jest.config.js',
     '!coverage/**',
     '!__tests__/**'
