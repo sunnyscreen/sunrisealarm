@@ -60,11 +60,12 @@ jobs:
       run: npx playwright install --with-deps chromium
 
     - name: Run E2E tests against Vercel preview
+      id: e2e-tests
       env:
         BASE_URL: ${{ github.event.deployment_status.target_url }}
       run: |
         echo "Testing deployment at: $BASE_URL"
-        npm run test:e2e:preview || echo "E2E tests failed but continuing..."
+        npm run test:e2e:preview
 
     - name: Upload E2E test results
       if: always()
@@ -81,3 +82,44 @@ jobs:
         deployment-url: ${{ github.event.deployment_status.target_url }}
         name: 'E2E Tests'
         state: ${{ job.status }}
+
+  # Promote to production after E2E tests pass on preview branch
+  promote-to-production:
+    name: Promote to Production
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: |
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Preview' &&
+      github.ref == 'refs/heads/preview'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Merge preview to main
+      run: |
+        git fetch origin main:main
+        git checkout main
+        git merge origin/preview --no-ff -m "Auto-promote preview to production after E2E tests passed
+
+        Preview deployment: ${{ github.event.deployment_status.target_url }}
+        E2E tests: Passed ✅
+
+        🤖 Automated by GitHub Actions"
+        git push origin main
+
+    - name: Deployment initiated
+      run: |
+        echo "✅ E2E tests passed on preview"
+        echo "🚀 Merged preview to main"
+        echo "⏳ Vercel will now deploy to production (sunnyscreen.art)"
