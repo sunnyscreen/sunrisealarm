@@ -62,7 +62,8 @@ jobs:
     - name: Run E2E tests against Vercel preview
       id: e2e-tests
       env:
-        BASE_URL: ${{ github.event.deployment_status.target_url }}
+        # Use custom domain instead of Vercel's auto-generated URL
+        BASE_URL: https://preview.sunnyscreen.art
         PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
         PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       run: |
