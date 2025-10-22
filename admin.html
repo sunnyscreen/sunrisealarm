@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Sunrise Alarm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF9500, #FF6B00);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 600;
+            color: #FF9500;
+        }
+
+        .users-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            width: 300px;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .users-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .users-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .role-free {
+            background: rgba(142, 142, 147, 0.3);
+            color: #98989d;
+        }
+
+        .role-premium {
+            background: rgba(255, 149, 0, 0.3);
+            color: #FF9500;
+        }
+
+        .role-admin {
+            background: rgba(52, 199, 89, 0.3);
+            color: #34C759;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 48, 0.3);
+            color: #ff453a;
+            border: 1px solid rgba(255, 59, 48, 0.5);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        select {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Dashboard</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="window.location.href='/app.html'">Go to App</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Free Users</div>
+                <div class="stat-value" id="freeUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Premium Users</div>
+                <div class="stat-value" id="premiumUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Admin Users</div>
+                <div class="stat-value" id="adminUsers">-</div>
+            </div>
+        </div>
+
+        <div class="users-section">
+            <div class="section-header">
+                <h2>All Users</h2>
+                <input type="text" class="search-box" id="searchBox" placeholder="Search by email...">
+            </div>
+
+            <div id="loadingState" class="loading">Loading users...</div>
+            <div id="emptyState" class="empty" style="display: none;">No users found</div>
+
+            <table class="users-table" id="usersTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="lib/auth-client.js"></script>
+    <script src="lib/api-client.js"></script>
+    <script>
+        let allUsers = [];
+
+        async function init() {
+            // Require admin auth
+            const user = await requireAdmin();
+            if (!user) return;
+
+            // Load stats and users
+            await loadStats();
+            await loadUsers();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await adminAPI.getStats();
+                if (response.success) {
+                    document.getElementById('totalUsers').textContent = response.stats.totalUsers;
+                    document.getElementById('freeUsers').textContent = response.stats.freeUsers;
+                    document.getElementById('premiumUsers').textContent = response.stats.premiumUsers;
+                    document.getElementById('adminUsers').textContent = response.stats.adminUsers;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await adminAPI.getUsers();
+
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (response.success && response.users.length > 0) {
+                    allUsers = response.users;
+                    renderUsers(allUsers);
+                    document.getElementById('usersTable').style.display = 'table';
+                } else {
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('loadingState').textContent = 'Error loading users';
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+
+                const roleClass = `role-${user.role}`;
+                const createdDate = new Date(user.created).toLocaleDateString();
+
+                tr.innerHTML = `
+                    <td>${user.email}</td>
+                    <td><span class="role-badge ${roleClass}">${user.role}</span></td>
+                    <td>${createdDate}</td>
+                    <td>
+                        <div class="actions">
+                            <select onchange="updateRole('${user.userId}', this.value)">
+                                <option value="">Change Role...</option>
+                                <option value="free" ${user.role === 'free' ? 'disabled' : ''}>Free</option>
+                                <option value="premium" ${user.role === 'premium' ? 'disabled' : ''}>Premium</option>
+                                <option value="admin" ${user.role === 'admin' ? 'disabled' : ''}>Admin</option>
+                            </select>
+                            <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.userId}', '${user.email}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function updateRole(userId, newRole) {
+            if (!newRole) return;
+
+            if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+                return;
+            }
+
+            try {
+                const response = await adminAPI.updateUserRole(userId, newRole);
+                if (response.success) {
+                    await loadStats();
+                    await loadUsers();
+                }
+            } catch (error) {
+                alert('Error updating user role: ' + error.message);
+            }
+        }
+
+        async function deleteUser(userId, email) {
+            if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await adminAPI.deleteUser(userId);
+                if (response.success) {
+                    await loadStats();
+                    await loadUsers();
+                }
+            } catch (error) {
+                alert('Error deleting user: ' + error.message);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+            window.location.href = '/auth.html';
+        }
+
+        // Search functionality
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = allUsers.filter(user =>
+                user.email.toLowerCase().includes(query)
+            );
+            renderUsers(filtered);
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
