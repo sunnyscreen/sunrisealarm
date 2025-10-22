@@ -75,14 +75,6 @@ jobs:
         path: test-results/
         retention-days: 30
 
-    - name: Notify Vercel of test status
-      if: always()
-      uses: vercel/repository-dispatch/actions/status@v1
-      with:
-        deployment-url: ${{ github.event.deployment_status.target_url }}
-        name: 'E2E Tests'
-        state: ${{ job.status }}
-
   # Promote to production after E2E tests pass on preview branch
   promote-to-production:
     name: Promote to Production
