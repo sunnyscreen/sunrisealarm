@@ -423,6 +423,10 @@
         <div style="text-align: center; margin-top: 12px; font-size: 14px; color: rgba(255, 255, 255, 0.5);" id="userInfo"></div>
 
         <button class="btn-secondary" id="testBtn">Start</button>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="#" id="authLink" style="font-size: 16px; color: rgba(255, 149, 0, 0.8); text-decoration: none; cursor: pointer;">Sign in</a>
+        </div>
     </div>
 
     <div class="alarm-window" id="alarmWindow">
@@ -566,6 +570,7 @@
             const logoutBtn = document.getElementById('logoutBtn');
             const loginBtn = document.getElementById('loginBtn');
             const userInfo = document.getElementById('userInfo');
+            const authLink = document.getElementById('authLink');
 
             if (currentUser) {
                 loginBtn.style.display = 'none';
@@ -578,12 +583,28 @@
                 const roleEmoji = currentUser.role === 'admin' ? '👑' : currentUser.role === 'premium' ? '⭐' : '🆓';
                 userInfo.textContent = `${roleEmoji} Logged in as ${currentUser.email} (${currentUser.role})`;
                 userInfo.style.display = 'block';
+
+                // Update bottom auth link for signed-in users
+                authLink.textContent = `Sign out ${currentUser.email}`;
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    if (typeof logout !== 'undefined') {
+                        logout();
+                    }
+                };
             } else {
                 loginBtn.style.display = 'block';
                 logoutBtn.style.display = 'none';
                 adminBtn.style.display = 'none';
                 userInfo.textContent = 'Using local storage (not synced)';
                 userInfo.style.display = 'block';
+
+                // Update bottom auth link for signed-out users
+                authLink.textContent = 'Sign in';
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    window.location.href = '/auth.html';
+                };
             }
         }
 
