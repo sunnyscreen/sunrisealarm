@@ -786,7 +786,10 @@
             }
         });
 
-        // Initialize
+        // Initialize - save config to ensure enabled is true if days are selected
+        if (selectedDays.length > 0) {
+            autoSaveConfig();
+        }
         updateNextAlarm();
         scheduleNextAlarm(loadConfig());
     </script>
