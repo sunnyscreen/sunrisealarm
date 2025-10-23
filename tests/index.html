@@ -203,6 +203,47 @@
             background: #000;
         }
 
+        .test-attachments {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .attachment-section {
+            margin-bottom: 1rem;
+        }
+
+        .attachment-section h5 {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .attachment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .attachment-item video,
+        .attachment-item img {
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+
+        .attachment-item video {
+            background: #000;
+            max-height: 400px;
+        }
+
+        .test-timestamp {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+        }
+
         .loading {
             text-align: center;
             padding: 3rem;
@@ -343,7 +384,6 @@
     <div class="container">
         <div class="nav-header">
             <a href="/">← Back to Home</a>
-            <a href="/app">Launch App</a>
         </div>
 
         <h1>Test Dashboard</h1>
@@ -393,7 +433,6 @@
             <div id="e2e-tab" class="tab-content">
                 <div class="tab-header">
                     <h2 class="tab-title">E2E Tests (Playwright)</h2>
-                    <a href="../playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
                 </div>
                 <div id="playwright-results" class="test-results">
                     <div class="loading">Loading E2E test results...</div>
@@ -516,13 +555,71 @@
                         const projectInfo = spec.tests.map(t => t.projectName).join(', ');
                         const errorMsg = result.error ? result.error.message.substring(0, 200) : '';
 
+                        // Extract timestamp
+                        const timestamp = result.startTime ? new Date(result.startTime).toLocaleString() : '';
+
+                        // Extract attachments (videos and screenshots)
+                        const videos = [];
+                        const screenshots = [];
+
+                        if (result.attachments && result.attachments.length > 0) {
+                            result.attachments.forEach(attachment => {
+                                if (attachment.contentType === 'video/webm' && attachment.path) {
+                                    videos.push(attachment.path);
+                                } else if (attachment.contentType && attachment.contentType.startsWith('image/') && attachment.path) {
+                                    screenshots.push(attachment.path);
+                                }
+                            });
+                        }
+
+                        // Build attachments HTML
+                        let attachmentsHtml = '';
+                        if (videos.length > 0 || screenshots.length > 0) {
+                            attachmentsHtml = '<div class="test-attachments">';
+
+                            if (videos.length > 0) {
+                                attachmentsHtml += '<div class="attachment-section"><h5>Videos</h5><div class="attachment-grid">';
+                                videos.forEach(videoPath => {
+                                    // Convert absolute path to relative path from tests/
+                                    const relativePath = videoPath.replace(/^.*?test-results\//, '../test-results/');
+                                    attachmentsHtml += `
+                                        <div class="attachment-item">
+                                            <video controls>
+                                                <source src="${relativePath}" type="video/webm">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        </div>
+                                    `;
+                                });
+                                attachmentsHtml += '</div></div>';
+                            }
+
+                            if (screenshots.length > 0) {
+                                attachmentsHtml += '<div class="attachment-section"><h5>Screenshots</h5><div class="attachment-grid">';
+                                screenshots.forEach(screenshotPath => {
+                                    // Convert absolute path to relative path from tests/
+                                    const relativePath = screenshotPath.replace(/^.*?test-results\//, '../test-results/');
+                                    attachmentsHtml += `
+                                        <div class="attachment-item">
+                                            <img src="${relativePath}" alt="Test screenshot">
+                                        </div>
+                                    `;
+                                });
+                                attachmentsHtml += '</div></div>';
+                            }
+
+                            attachmentsHtml += '</div>';
+                        }
+
                         html += `
                             <div class="test-item ${passed ? 'passed' : 'failed'}">
                                 <div class="test-item-title">${spec.title}</div>
                                 <div class="test-item-duration">
                                     ${formatDuration(result.duration)} - ${suiteName} [${projectInfo}]
                                 </div>
+                                ${timestamp ? `<div class="test-timestamp">Run at: ${timestamp}</div>` : ''}
                                 ${!passed && errorMsg ? `<div style="color: #991b1b; font-size: 0.875rem; margin-top: 0.5rem; font-family: monospace;">${errorMsg}</div>` : ''}
+                                ${attachmentsHtml}
                             </div>
                         `;
                     }
