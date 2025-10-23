@@ -60,11 +60,28 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
 
+    - name: Determine deployment URL
+      id: deployment-url
+      run: |
+        # Extract branch name from ref
+        REF="${{ github.ref }}"
+        BRANCH=$(echo $REF | sed 's/refs\/heads\///')
+        echo "Branch: $BRANCH"
+
+        # Set URL based on branch
+        if [ "$BRANCH" = "main" ]; then
+          echo "url=https://sunnyscreen.art" >> $GITHUB_OUTPUT
+        elif [ "$BRANCH" = "preview" ]; then
+          echo "url=https://preview.sunnyscreen.art" >> $GITHUB_OUTPUT
+        else
+          # For other branches, use the deployment URL from the event
+          echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Run E2E tests against Vercel preview
       id: e2e-tests
       env:
-        # Use custom domain instead of Vercel's auto-generated URL
-        BASE_URL: https://preview.sunnyscreen.art
+        BASE_URL: ${{ steps.deployment-url.outputs.url }}
         PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
         PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       run: |
