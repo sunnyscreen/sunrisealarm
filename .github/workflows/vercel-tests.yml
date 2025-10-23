@@ -179,7 +179,9 @@ jobs:
     - name: Commit test results to main
       if: steps.check_branch.outputs.skip != 'true'
       run: |
+        # Add JSON results and video files
         git add -f test-results/playwright-results.json
+        git add -f test-results/**/video.webm || echo "No videos to add"
         git commit -m "Add E2E test results from CI run [skip ci]" || echo "No test result changes"
         git push origin main
 

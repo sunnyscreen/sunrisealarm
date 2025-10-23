@@ -235,7 +235,13 @@
 
         .attachment-item video {
             background: #000;
-            max-height: 400px;
+            max-height: 500px;
+            object-fit: contain;
+            aspect-ratio: 16 / 9;
+        }
+
+        .attachment-item video:not(.loaded) {
+            min-height: 300px;
         }
 
         .test-timestamp {
@@ -580,11 +586,13 @@
                             if (videos.length > 0) {
                                 attachmentsHtml += '<div class="attachment-section"><h5>Videos</h5><div class="attachment-grid">';
                                 videos.forEach(videoPath => {
-                                    // Convert absolute path to relative path from tests/
-                                    const relativePath = videoPath.replace(/^.*?test-results\//, '../test-results/');
+                                    // Extract test-results portion and make relative from tests/ directory
+                                    // Handles both absolute CI paths and relative local paths
+                                    const match = videoPath.match(/test-results\/(.+)/);
+                                    const relativePath = match ? `../test-results/${match[1]}` : videoPath;
                                     attachmentsHtml += `
                                         <div class="attachment-item">
-                                            <video controls>
+                                            <video controls preload="metadata" onloadedmetadata="this.classList.add('loaded')" onerror="this.parentElement.innerHTML='<div style=&quot;padding:1rem;background:#fee;color:#c00;border-radius:4px;text-align:center;&quot;>Video unavailable</div>'">
                                                 <source src="${relativePath}" type="video/webm">
                                                 Your browser does not support the video tag.
                                             </video>
@@ -597,11 +605,12 @@
                             if (screenshots.length > 0) {
                                 attachmentsHtml += '<div class="attachment-section"><h5>Screenshots</h5><div class="attachment-grid">';
                                 screenshots.forEach(screenshotPath => {
-                                    // Convert absolute path to relative path from tests/
-                                    const relativePath = screenshotPath.replace(/^.*?test-results\//, '../test-results/');
+                                    // Extract test-results portion and make relative from tests/ directory
+                                    const match = screenshotPath.match(/test-results\/(.+)/);
+                                    const relativePath = match ? `../test-results/${match[1]}` : screenshotPath;
                                     attachmentsHtml += `
                                         <div class="attachment-item">
-                                            <img src="${relativePath}" alt="Test screenshot">
+                                            <img src="${relativePath}" alt="Test screenshot" onerror="this.parentElement.innerHTML='<div style=&quot;padding:1rem;background:#fee;color:#c00;border-radius:4px;text-align:center;&quot;>Screenshot unavailable</div>'">
                                         </div>
                                     `;
                                 });
