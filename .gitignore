@@ -7,6 +7,7 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
+!test-results/playwright-results.json
 !tests/test-results/.gitkeep
 test-videos/*.webm
 test-videos/*.png
