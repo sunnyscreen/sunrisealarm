@@ -666,7 +666,7 @@
 
         // Day selection
         document.querySelectorAll('.day-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const day = parseInt(btn.dataset.day);
 
