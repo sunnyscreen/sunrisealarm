@@ -58,6 +58,7 @@ test.describe('Authentication Flow', () => {
     const testEmail = `test${Date.now()}@example.com`;
     await page.locator('#signupEmail').fill(testEmail);
     await page.locator('#signupPassword').fill('password123');
+    await page.locator('#signupPasswordConfirm').fill('password123');
 
     // Submit form
     const signupBtn = page.locator('#signupBtn');
@@ -251,6 +252,7 @@ test.describe('Authentication Flow', () => {
     // Try to register with existing email
     await page.locator('#signupEmail').fill('user@test.com');
     await page.locator('#signupPassword').fill('password123');
+    await page.locator('#signupPasswordConfirm').fill('password123');
     await page.locator('#signupBtn').click();
 
     // Wait for error
