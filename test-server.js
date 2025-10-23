@@ -66,6 +66,9 @@ app.use('/test-videos', express.static(path.join(__dirname, 'test-videos')));
 // Serve lib directory for client-side scripts
 app.use('/lib', express.static(path.join(__dirname, 'lib')));
 
+// Serve static assets (images, etc.)
+app.use(express.static(__dirname));
+
 // ===== MOCK AUTH API ENDPOINTS =====
 
 // Auth - Register
@@ -408,6 +411,11 @@ app.get('/alarm-utils.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'alarm-utils.js'));
 });
 
+// Serve sunrise data page
+app.get('/sunrise-data.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sunrise-data.html'));
+});
+
 // API endpoint to list available videos
 app.get('/api/videos', async (req, res) => {
     try {
@@ -484,9 +492,14 @@ app.get('/api/summary', async (req, res) => {
     }
 });
 
+// Serve homepage
+app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Root redirect
 app.get('/', (req, res) => {
-    res.redirect('/tests');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start server
