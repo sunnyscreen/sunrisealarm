@@ -9,7 +9,7 @@ test.describe('Homepage and Animated Background', () => {
     await page.goto('/');
 
     // Check that main elements are present
-    await expect(page.locator('h1')).toContainText('Wake up to a');
+    await expect(page.locator('h1')).toContainText('Sunnyscreen');
     await expect(page).toHaveTitle(/Sunnyscreen/);
   });
 
@@ -284,15 +284,15 @@ test.describe('Homepage and Animated Background', () => {
   test('should have semantic HTML structure', async ({ page }) => {
     await page.goto('/');
 
-    // Should have header
-    const header = page.locator('header, nav');
-    const hasHeader = await header.count() > 0;
+    // Should have section elements
+    const sections = page.locator('section');
+    const hasSection = await sections.count() > 0;
 
-    // Should have main content area
-    const main = page.locator('main, .main, .container');
-    const hasMain = await main.count() > 0;
+    // Should have footer
+    const footer = page.locator('footer');
+    const hasFooter = await footer.count() > 0;
 
-    expect(hasHeader || hasMain).toBe(true);
+    expect(hasSection && hasFooter).toBe(true);
   });
 
   test('should display correctly on mobile devices', async ({ page }) => {
