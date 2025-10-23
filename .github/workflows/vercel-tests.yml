@@ -63,19 +63,24 @@ jobs:
     - name: Determine deployment URL
       id: deployment-url
       run: |
-        # Extract branch name from ref
-        REF="${{ github.ref }}"
-        BRANCH=$(echo $REF | sed 's/refs\/heads\///')
-        echo "Branch: $BRANCH"
+        # Get the branch from the deployment environment
+        # Vercel sets deployment environment to production for main branch
+        ENV="${{ github.event.deployment_status.environment }}"
+        TARGET_URL="${{ github.event.deployment_status.target_url }}"
 
-        # Set URL based on branch
-        if [ "$BRANCH" = "main" ]; then
+        echo "Deployment environment: $ENV"
+        echo "Target URL: $TARGET_URL"
+
+        # Set URL based on environment and target URL
+        if [[ "$TARGET_URL" == *"sunnyscreen.art"* ]] && [[ "$TARGET_URL" != *"preview.sunnyscreen.art"* ]]; then
+          # Production deployment (sunnyscreen.art)
           echo "url=https://sunnyscreen.art" >> $GITHUB_OUTPUT
-        elif [ "$BRANCH" = "preview" ]; then
+        elif [[ "$TARGET_URL" == *"preview.sunnyscreen.art"* ]]; then
+          # Preview branch deployment
           echo "url=https://preview.sunnyscreen.art" >> $GITHUB_OUTPUT
         else
-          # For other branches, use the deployment URL from the event
-          echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+          # Other branches, use the Vercel deployment URL
+          echo "url=$TARGET_URL" >> $GITHUB_OUTPUT
         fi
 
     - name: Run E2E tests against Vercel preview
