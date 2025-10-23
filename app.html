@@ -535,11 +535,11 @@
                 currentUser = await verifyAuth();
                 if (currentUser) {
                     useCloudStorage = true;
-                    updateAuthUI();
-                } else {
-                    updateAuthUI();
                 }
             }
+
+            // Always update auth UI (even if verifyAuth is undefined)
+            updateAuthUI();
 
             // Load config
             const config = await loadConfig();
