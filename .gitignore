@@ -8,5 +8,7 @@ coverage/
 playwright-report/
 test-results/
 !tests/test-results/.gitkeep
+test-videos/*.webm
+test-videos/*.png
 _site/
 .vercel

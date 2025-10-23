@@ -60,6 +60,9 @@ mockDB.emailToUserId.set('user@test.com', freeUserId);
 // Serve static files from test-results directory
 app.use('/test-results', express.static(path.join(__dirname, 'test-results')));
 
+// Serve test videos directory
+app.use('/test-videos', express.static(path.join(__dirname, 'test-videos')));
+
 // Serve lib directory for client-side scripts
 app.use('/lib', express.static(path.join(__dirname, 'lib')));
 

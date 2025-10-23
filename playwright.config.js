@@ -20,7 +20,7 @@ module.exports = defineConfig({
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'on', // Always record videos (helpful for debugging)
     actionTimeout: 10000, // 10s timeout for individual actions
     // Add Vercel protection bypass header if provided
     extraHTTPHeaders: process.env.PLAYWRIGHT_BYPASS_HEADER && process.env.PLAYWRIGHT_BYPASS_VALUE ? {
