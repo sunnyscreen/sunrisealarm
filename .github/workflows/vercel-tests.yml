@@ -147,11 +147,26 @@ jobs:
           echo "skip=false" >> $GITHUB_OUTPUT
         fi
 
+    - name: Download E2E test results
+      if: steps.check_branch.outputs.skip != 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: e2e-test-results
+        path: test-results/
+
     - name: Configure git
       if: steps.check_branch.outputs.skip != 'true'
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Commit E2E test results
+      if: steps.check_branch.outputs.skip != 'true'
+      run: |
+        git checkout preview
+        git add -f test-results/playwright-results.json
+        git commit -m "Update E2E test results for production deployment [skip ci]" || echo "No changes to commit"
+        git push origin preview
 
     - name: Merge preview to main
       if: steps.check_branch.outputs.skip != 'true'
