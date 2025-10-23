@@ -81,7 +81,7 @@ test.describe('Authentication Flow', () => {
 
     // Fill in login form with test user
     await page.locator('#loginEmail').fill('user@test.com');
-    await page.locator('#loginPassword').fill('anypassword'); // Mock accepts any password
+    await page.locator('#loginPassword').fill('testpassword123');
 
     // Submit form
     const loginBtn = page.locator('#loginBtn');
@@ -100,7 +100,7 @@ test.describe('Authentication Flow', () => {
 
     // Login as admin
     await page.locator('#loginEmail').fill('admin@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     // Wait for redirect
@@ -121,7 +121,7 @@ test.describe('Authentication Flow', () => {
 
     // Login
     await page.locator('#loginEmail').fill('user@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     await expect(page).toHaveURL(/\/app/, { timeout: 5000 });
@@ -139,7 +139,7 @@ test.describe('Authentication Flow', () => {
 
     // Login first
     await page.locator('#loginEmail').fill('user@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     await expect(page).toHaveURL(/\/app/, { timeout: 5000 });
@@ -163,7 +163,7 @@ test.describe('Authentication Flow', () => {
 
     // Login
     await page.locator('#loginEmail').fill('user@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     await expect(page).toHaveURL(/\/app/, { timeout: 5000 });
@@ -186,7 +186,7 @@ test.describe('Authentication Flow', () => {
 
     // Login as admin
     await page.locator('#loginEmail').fill('admin@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     await expect(page).toHaveURL(/\/app/, { timeout: 5000 });
@@ -207,7 +207,7 @@ test.describe('Authentication Flow', () => {
 
     // Login
     await page.locator('#loginEmail').fill('user@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     await expect(page).toHaveURL(/\/app/, { timeout: 5000 });
@@ -232,7 +232,7 @@ test.describe('Authentication Flow', () => {
 
     // Try to login with invalid email
     await page.locator('#loginEmail').fill('nonexistent@test.com');
-    await page.locator('#loginPassword').fill('password');
+    await page.locator('#loginPassword').fill('testpassword123');
     await page.locator('#loginBtn').click();
 
     // Wait a bit for error
