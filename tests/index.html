@@ -225,6 +225,30 @@
             margin-top: 2rem;
         }
 
+        .nav-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .nav-header a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-header a:hover {
+            color: #5568d3;
+        }
+
         .no-data {
             text-align: center;
             padding: 2rem;
@@ -317,7 +341,19 @@
 </head>
 <body>
     <div class="container">
+        <div class="nav-header">
+            <a href="/">← Back to Home</a>
+            <a href="/app">Launch App</a>
+        </div>
+
         <h1>Test Dashboard</h1>
+
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div id="overall-status" style="display: inline-block; padding: 1rem 2rem; border-radius: 12px; font-size: 1.5rem; font-weight: 600; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <span id="status-icon">⏳</span>
+                <span id="status-text">Loading test results...</span>
+            </div>
+        </div>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -339,6 +375,11 @@
         </div>
 
         <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" data-tab="unit">Unit Tests</button>
+                <button class="tab" data-tab="e2e">E2E Tests</button>
+            </div>
+
             <div id="unit-tab" class="tab-content active">
                 <div class="tab-header">
                     <h2 class="tab-title">Unit Tests (Jest)</h2>
@@ -348,28 +389,57 @@
                     <div class="loading">Loading unit test results...</div>
                 </div>
             </div>
+
+            <div id="e2e-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2 class="tab-title">E2E Tests (Playwright)</h2>
+                    <a href="../playwright-report/index.html" target="_blank" class="btn btn-primary">View Full Report</a>
+                </div>
+                <div id="playwright-results" class="test-results">
+                    <div class="loading">Loading E2E test results...</div>
+                </div>
+            </div>
         </div>
 
         <div class="timestamp" id="last-updated"></div>
     </div>
 
     <script>
+        let jestStats = { total: 0, passed: 0, failed: 0, duration: 0 };
+        let playwrightStats = { total: 0, passed: 0, failed: 0, duration: 0 };
+
         async function loadTestResults() {
+            // Load Jest results
             try {
-                // Load Jest results
                 const jestResponse = await fetch('test-results/jest-results.json');
                 if (jestResponse.ok) {
                     const jestData = await jestResponse.json();
                     displayJestResults(jestData);
                 } else {
                     document.getElementById('jest-results').innerHTML =
-                        '<div class="no-data">No unit test results available. Tests run automatically on every commit.</div>';
+                        '<div class="no-data">No unit test results available. Run <code>npm test</code> to generate results.</div>';
                 }
             } catch (error) {
                 document.getElementById('jest-results').innerHTML =
                     '<div class="error-message">Failed to load unit test results: ' + error.message + '</div>';
             }
 
+            // Load Playwright results
+            try {
+                const playwrightResponse = await fetch('test-results/playwright-results.json');
+                if (playwrightResponse.ok) {
+                    const playwrightData = await playwrightResponse.json();
+                    displayPlaywrightResults(playwrightData);
+                } else {
+                    document.getElementById('playwright-results').innerHTML =
+                        '<div class="no-data">No E2E test results available. Run <code>npm run test:e2e</code> to generate results.</div>';
+                }
+            } catch (error) {
+                document.getElementById('playwright-results').innerHTML =
+                    '<div class="error-message">Failed to load E2E test results: ' + error.message + '</div>';
+            }
+
+            updateCombinedStats();
             updateTimestamp();
         }
 
@@ -403,18 +473,119 @@
             });
 
             container.innerHTML = html;
-            updateStats(totalTests, passedTests, failedTests, data.startTime ? new Date().getTime() - data.startTime : 0);
+            jestStats = {
+                total: totalTests,
+                passed: passedTests,
+                failed: failedTests,
+                duration: data.startTime ? new Date().getTime() - data.startTime : 0
+            };
+            updateCombinedStats();
         }
 
-        function updateStats(total, passed, failed, duration) {
-            document.getElementById('total-tests').textContent = total;
-            document.getElementById('passed-tests').textContent = passed;
-            document.getElementById('failed-tests').textContent = failed;
-            document.getElementById('duration').textContent = formatDuration(duration);
+        function displayPlaywrightResults(data) {
+            const container = document.getElementById('playwright-results');
+
+            if (!data.suites || data.suites.length === 0) {
+                container.innerHTML = '<div class="no-data">No test results found.</div>';
+                return;
+            }
+
+            let html = '';
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+
+            // Parse Playwright results structure
+            function processSpecs(specs, suiteName) {
+                specs.forEach(spec => {
+                    if (spec.tests && spec.tests.length > 0) {
+                        // Get unique test (skip duplicate browser runs for display)
+                        const test = spec.tests[0];
+                        const result = test.results[0];
+
+                        totalTests++;
+                        const passed = result.status === 'passed';
+                        if (passed) passedTests++;
+                        else failedTests++;
+
+                        const projectInfo = spec.tests.map(t => t.projectName).join(', ');
+                        const errorMsg = result.error ? result.error.message.substring(0, 200) : '';
+
+                        html += `
+                            <div class="test-item ${passed ? 'passed' : 'failed'}">
+                                <div class="test-item-title">${spec.title}</div>
+                                <div class="test-item-duration">
+                                    ${formatDuration(result.duration)} - ${suiteName} [${projectInfo}]
+                                </div>
+                                ${!passed && errorMsg ? `<div style="color: #991b1b; font-size: 0.875rem; margin-top: 0.5rem; font-family: monospace;">${errorMsg}</div>` : ''}
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            function processSuite(suite) {
+                if (suite.suites && suite.suites.length > 0) {
+                    suite.suites.forEach(subsuite => {
+                        if (subsuite.specs && subsuite.specs.length > 0) {
+                            processSpecs(subsuite.specs, subsuite.title);
+                        }
+                        if (subsuite.suites && subsuite.suites.length > 0) {
+                            processSuite(subsuite);
+                        }
+                    });
+                }
+                if (suite.specs && suite.specs.length > 0) {
+                    processSpecs(suite.specs, suite.title);
+                }
+            }
+
+            data.suites.forEach(suite => processSuite(suite));
+
+            container.innerHTML = html || '<div class="no-data">No tests executed.</div>';
+
+            playwrightStats = {
+                total: totalTests,
+                passed: passedTests,
+                failed: failedTests,
+                duration: data.stats ? data.stats.duration : 0
+            };
+            updateCombinedStats();
+        }
+
+        function updateCombinedStats() {
+            const total = jestStats.total + playwrightStats.total;
+            const passed = jestStats.passed + playwrightStats.passed;
+            const failed = jestStats.failed + playwrightStats.failed;
+            const duration = jestStats.duration + playwrightStats.duration;
+
+            document.getElementById('total-tests').textContent = total || '-';
+            document.getElementById('passed-tests').textContent = passed || '-';
+            document.getElementById('failed-tests').textContent = failed || '-';
+            document.getElementById('duration').textContent = total > 0 ? formatDuration(duration) : '-';
+
+            // Update overall status
+            const statusIcon = document.getElementById('status-icon');
+            const statusText = document.getElementById('status-text');
+            const overallStatus = document.getElementById('overall-status');
+
+            if (total === 0) {
+                statusIcon.textContent = '⚠️';
+                statusText.textContent = 'No tests found';
+                overallStatus.style.color = '#f59e0b';
+            } else if (failed === 0) {
+                statusIcon.textContent = '✅';
+                statusText.textContent = 'All tests passing';
+                overallStatus.style.color = '#10b981';
+            } else {
+                statusIcon.textContent = '❌';
+                statusText.textContent = `${failed} test${failed > 1 ? 's' : ''} failing`;
+                overallStatus.style.color = '#ef4444';
+            }
         }
 
         function formatDuration(ms) {
-            if (ms < 1000) return ms + 'ms';
+            if (ms < 1000) return Math.round(ms) + 'ms';
             if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
             return (ms / 60000).toFixed(1) + 'min';
         }
@@ -424,6 +595,23 @@
             document.getElementById('last-updated').textContent =
                 'Last updated: ' + now.toLocaleString();
         }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(targetTab + '-tab').classList.add('active');
+            });
+        });
 
         // Load results on page load
         loadTestResults();
