@@ -386,6 +386,38 @@ app.get('/api/admin/stats', (req, res) => {
 
 // ===== END MOCK AUTH API ENDPOINTS =====
 
+// Weather - Get Recommendations
+app.get('/api/weather/recommendations', async (req, res) => {
+    // For local testing, return mock weather data
+    // In production (Vercel), this will be replaced by the actual serverless function
+    const mockWeatherData = [
+        { condition: "72°F, Sunny, Light breeze", recommendation: "Wear a light t-shirt and comfortable jeans with sneakers." },
+        { condition: "55°F, Partly cloudy, Moderate wind", recommendation: "Layer up with a long-sleeve shirt and a light jacket." },
+        { condition: "45°F, Overcast, Strong wind", recommendation: "Wear a warm sweater and windproof jacket with long pants." },
+        { condition: "85°F, Hot and humid, No wind", recommendation: "Opt for breathable cotton clothing and stay hydrated." },
+        { condition: "32°F, Snowing, Light wind", recommendation: "Bundle up in a heavy coat, scarf, gloves, and warm boots." },
+        { condition: "68°F, Clear, Calm", recommendation: "Perfect weather for a light shirt and shorts or a casual dress." },
+        { condition: "50°F, Light rain, Breezy", recommendation: "Wear a waterproof jacket with layers underneath." },
+        { condition: "40°F, Foggy, Still air", recommendation: "Dress in a warm jacket and consider waterproof shoes." },
+        { condition: "78°F, Mostly sunny, Light breeze", recommendation: "Wear light, airy fabrics like linen or cotton." },
+        { condition: "25°F, Freezing, Heavy wind", recommendation: "Wear thermal layers, a heavy winter coat, and insulated boots." }
+    ];
+
+    // Generate 100 items by repeating and varying the mock data
+    const recommendations = [];
+    for (let i = 0; i < 100; i++) {
+        const base = mockWeatherData[i % mockWeatherData.length];
+        recommendations.push(base);
+    }
+
+    res.json({
+        success: true,
+        recommendations
+    });
+});
+
+// ===== END MOCK WEATHER API ENDPOINTS =====
+
 // Main dashboard route
 app.get('/tests', (req, res) => {
     res.sendFile(path.join(__dirname, 'tests', 'index.html'));
@@ -414,6 +446,11 @@ app.get('/alarm-utils.js', (req, res) => {
 // Serve sunrise data page
 app.get('/sunrise-data.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'sunrise-data.html'));
+});
+
+// Serve weather client
+app.get('/weather-client.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'weather-client.js'));
 });
 
 // API endpoint to list available videos
