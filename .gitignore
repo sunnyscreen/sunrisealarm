@@ -8,6 +8,7 @@ coverage/
 playwright-report/
 test-results/
 !test-results/playwright-results.json
+!test-results/**/video.webm
 !tests/test-results/.gitkeep
 test-videos/*.webm
 test-videos/*.png
