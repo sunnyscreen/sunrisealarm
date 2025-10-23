@@ -60,6 +60,12 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
 
+    - name: Seed test users
+      run: |
+        SEED_URL="${{ github.event.deployment_status.target_url }}/api/seed-test-users?secret=${{ secrets.SEED_SECRET }}"
+        echo "Seeding test users at: ${SEED_URL}"
+        curl -X POST "${SEED_URL}" -H "Content-Type: application/json" || echo "Seed failed, continuing anyway"
+
     - name: Determine deployment URL
       id: deployment-url
       run: |
