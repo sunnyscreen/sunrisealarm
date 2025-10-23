@@ -9,7 +9,7 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 4 : undefined, // 4 parallel workers in CI for faster execution
   timeout: process.env.CI ? 60000 : 30000, // 60s in CI, 30s locally
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
