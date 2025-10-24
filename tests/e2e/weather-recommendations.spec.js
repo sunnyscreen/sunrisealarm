@@ -300,6 +300,14 @@ test.describe('Weather Recommendations', () => {
 
   test('should have different recommendations for different temperature ranges', async ({ page }) => {
     const response = await page.goto('/api/weather/recommendations');
+    const status = response.status();
+
+    // Skip validation if rate limited
+    if (status === 429) {
+      test.skip(status === 429, 'API rate limited on Vercel');
+      return;
+    }
+
     const data = await response.json();
 
     // Extract temperatures from conditions
