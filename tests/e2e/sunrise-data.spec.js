@@ -56,21 +56,21 @@ test.describe('Sunrise Data Table', () => {
     await page.goto('/sunrise-data.html');
 
     const table = page.locator('#dataTable');
-    await expect(table).toBeVisible();
+    await expect(table).toBeAttached(); // Table exists but is hidden until data generated
 
-    // Check for required column headers
-    await expect(page.locator('th:has-text("Day")')).toBeVisible();
-    await expect(page.locator('th:has-text("Date")')).toBeVisible();
-    await expect(page.locator('th:has-text("Sunrise")')).toBeVisible();
-    await expect(page.locator('th:has-text("Sunset")')).toBeVisible();
-    await expect(page.locator('th:has-text("Daylight Hours")')).toBeVisible();
+    // Check for required column headers (they exist even if hidden)
+    await expect(page.locator('th:has-text("Day")')).toBeAttached();
+    await expect(page.locator('th:has-text("Date")')).toBeAttached();
+    await expect(page.locator('th:has-text("Sunrise")')).toBeAttached();
+    await expect(page.locator('th:has-text("Sunset")')).toBeAttached();
+    await expect(page.locator('th:has-text("Daylight Hours")')).toBeAttached();
   });
 
   test('should show status message area', async ({ page }) => {
     await page.goto('/sunrise-data.html');
 
     const statusDiv = page.locator('#status');
-    await expect(statusDiv).toBeVisible();
+    await expect(statusDiv).toBeAttached(); // Status div exists but is hidden initially
   });
 
   test('should validate empty API key', async ({ page }) => {
@@ -183,7 +183,7 @@ test.describe('Sunrise Data Table', () => {
     await page.goto('/sunrise-data.html');
 
     const table = page.locator('#dataTable');
-    await expect(table).toBeVisible();
+    await expect(table).toBeAttached(); // Table exists but is hidden until data generated
 
     // Table should have styling classes for responsiveness
     const tableClass = await table.getAttribute('class');
@@ -199,11 +199,11 @@ test.describe('Sunrise Data Table', () => {
     const generateBtn = page.locator('#generateBtn');
     const table = page.locator('#dataTable');
 
-    // All elements should be visible
+    // All elements should exist (table is hidden until data is generated)
     await expect(heading).toBeVisible();
     await expect(apiKeyInput).toBeVisible();
     await expect(generateBtn).toBeVisible();
-    await expect(table).toBeVisible();
+    await expect(table).toBeAttached(); // Table exists but is hidden initially
 
     // Heading should be above API key input
     const headingBox = await heading.boundingBox();
@@ -274,8 +274,8 @@ test.describe('Sunrise Data Table', () => {
 
     const statusDiv = page.locator('#status');
 
-    // Initial state - should have status div ready
-    await expect(statusDiv).toBeVisible();
+    // Initial state - should have status div ready (but hidden)
+    await expect(statusDiv).toBeAttached();
 
     // Status div should be empty or have default message initially
     const initialText = await statusDiv.textContent();
