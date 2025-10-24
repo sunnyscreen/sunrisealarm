@@ -162,6 +162,11 @@ jobs:
         # Merge preview to main
         git fetch origin main:main
         git checkout main
+
+        # Remove old test results to avoid merge conflicts
+        git rm -rf test-results/ || echo "No test-results to remove"
+        git commit -m "Remove old test results [skip ci]" || echo "No test results to remove"
+
         git merge origin/preview --no-ff -m "Auto-promote preview to production after E2E tests passed
 
         Preview deployment: ${{ github.event.deployment_status.target_url }}
