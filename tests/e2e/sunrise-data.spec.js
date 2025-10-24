@@ -176,7 +176,8 @@ test.describe('Sunrise Data Table', () => {
     await sunriseDataLink.click();
 
     // Should navigate to sunrise data page
-    await expect(page).toHaveURL(/.*sunrise-data\.html/);
+    // Match with or without .html extension (Vercel removes it in production)
+    await expect(page).toHaveURL(/.*sunrise-data(\.html)?$/);
     await expect(page.locator('h1')).toContainText('Sunrise & Sunset Data');
   });
 
