@@ -13,7 +13,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
 
     permissions:
-      contents: read
+      contents: write  # Changed from read to write to allow committing analysis
       pull-requests: write
       issues: write
       actions: read
@@ -22,7 +22,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.workflow_run.head_sha }}
+        ref: ${{ github.event.workflow_run.head_branch }}
+        fetch-depth: 0  # Fetch all history so we can push
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -128,6 +129,27 @@ jobs:
               body: body
             });
           }
+
+    - name: Commit failure analysis to repo
+      if: always()
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Create test-results directory if it doesn't exist
+        mkdir -p test-results
+
+        # Add the analysis file
+        git add test-results/failure-analysis.md || true
+
+        # Only commit if there are changes
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update test failure analysis [skip ci]"
+          git push
+        fi
+      continue-on-error: true
 
     - name: Upload analysis artifact
       if: always()
