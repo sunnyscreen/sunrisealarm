@@ -13,7 +13,7 @@ test.describe('Sunrise Data Table', () => {
 
     // Check that main elements are present
     await expect(page.locator('h1')).toContainText('Sunrise & Sunset Data');
-    await expect(page.locator('.subtitle')).toContainText('Generate 100 days of sunrise and sunset times');
+    await expect(page.locator('.subtitle')).toContainText('AI-generated hypothetical sunrise and sunset times for 100 days');
   });
 
   test('should display API key input field', async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe('Sunrise Data Table', () => {
     const apiKeyInput = page.locator('#apiKey');
     await expect(apiKeyInput).toBeVisible();
     await expect(apiKeyInput).toHaveAttribute('type', 'password');
-    await expect(apiKeyInput).toHaveAttribute('placeholder', 'Enter your OpenAI API key');
+    await expect(apiKeyInput).toHaveAttribute('placeholder', 'sk-...');
   });
 
   test('should display generate data button', async ({ page }) => {
