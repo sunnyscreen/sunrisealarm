@@ -63,6 +63,7 @@ The app calculates the next valid alarm time by:
 - Interactive dashboard at `/tests` showing all test results
 - Local server: `npm run test:dashboard` → http://localhost:3000/tests
 - Deployed version: Auto-updated on deployments via Vercel
+- **AI-Powered Failure Analysis**: When tests fail, the dashboard displays automated recommendations for fixes
 
 ## CI/CD Pipeline
 
@@ -72,6 +73,22 @@ The `.github/workflows/vercel-tests.yml` workflow runs on every push:
 1. **unit-tests**: Runs Jest unit tests for pure functions
 2. **e2e-tests**: Runs after Vercel deployment succeeds, tests preview site
 3. **promote-to-production**: Auto-merges preview → main after E2E tests pass
+
+### AI-Powered Test Failure Analyzer
+The `.github/workflows/test-failure-analyzer.yml` workflow runs when tests fail:
+
+1. **Analyzes failures**: Downloads test artifacts and analyzes error patterns
+2. **Generates recommendations**: Uses Claude API (if available) or local pattern matching to suggest fixes
+3. **Comments on PR**: Posts analysis with specific recommendations to the pull request
+4. **Updates dashboard**: Analysis is displayed on the `/tests` dashboard for easy access
+
+The analyzer provides:
+- Root cause analysis for each failing test
+- Specific code changes needed (file and line numbers when identifiable)
+- Context from screenshots and videos
+- Pattern-based suggestions for common test failures
+
+**Configuration**: Requires `ANTHROPIC_API_KEY` secret for AI-powered analysis. Falls back to pattern-based analysis if not available.
 
 ### Preview → Production Flow
 - Push to `preview` branch triggers Vercel preview deployment
