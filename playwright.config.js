@@ -50,10 +50,6 @@ module.exports = defineConfig({
     },
   ],
 
-  webServer: process.env.CI ? undefined : {
-    command: 'npm run test:dashboard',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // Local test server disabled - all tests run in CI/CD against deployed sites
+  webServer: undefined,
 });
