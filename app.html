@@ -380,23 +380,6 @@
         .close-modal:hover {
             background: rgba(255, 255, 255, 0.15);
         }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .status-indicator.active {
-            background: #30d158;
-            box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
-        }
-
-        .status-indicator.inactive {
-            background: #ff453a;
-        }
     </style>
 </head>
 <body>
@@ -435,13 +418,7 @@
 
         <div class="next-alarm" id="nextAlarm" style="display: none;"></div>
 
-        <div style="display: flex; gap: 12px; margin-top: 12px;">
-            <button class="btn-info" id="powerBtn" style="flex: 1;">⚡ Power Settings</button>
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; font-size: 16px; color: rgba(255, 255, 255, 0.6);">
-                <span class="status-indicator" id="wakeLockStatus"></span>
-                <span id="wakeLockText">Wake Lock: Checking...</span>
-            </div>
-        </div>
+        <button class="btn-info" id="powerBtn" style="margin-top: 12px;">⚡ Power Settings</button>
 
         <div style="display: flex; gap: 12px; margin-top: 12px;" id="authButtons">
             <button class="btn-info" id="adminBtn" style="flex: 1; display: none;">Admin Panel</button>
@@ -511,7 +488,6 @@
     <script src="lib/api-client.js"></script>
     <script src="weather-client.js"></script>
     <script>
-        let wakeLock = null;
         let selectedDays = [1, 2, 3, 4, 5];
         let scheduledTimeout = null;
         let alarmAnimationInterval = null;
@@ -642,62 +618,6 @@
             }
         }
 
-
-        // Wake Lock API Support
-        async function requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake lock acquired');
-                    updateWakeLockStatus(true);
-
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake lock released');
-                        updateWakeLockStatus(false);
-                    });
-                } catch (err) {
-                    console.error('Wake lock request failed:', err);
-                    updateWakeLockStatus(false);
-                }
-            } else {
-                console.warn('Wake Lock API not supported');
-                updateWakeLockStatus(false);
-            }
-        }
-
-        async function releaseWakeLock() {
-            if (wakeLock) {
-                await wakeLock.release();
-                wakeLock = null;
-                updateWakeLockStatus(false);
-            }
-        }
-
-        function updateWakeLockStatus(active) {
-            const indicator = document.getElementById('wakeLockStatus');
-            const text = document.getElementById('wakeLockText');
-            if ('wakeLock' in navigator) {
-                indicator.className = 'status-indicator ' + (active ? 'active' : 'inactive');
-                text.textContent = 'Wake Lock: ' + (active ? 'Active' : 'Inactive');
-            } else {
-                indicator.className = 'status-indicator inactive';
-                text.textContent = 'Wake Lock: Not Supported';
-            }
-        }
-
-        // Check wake lock support on load
-        updateWakeLockStatus(false);
-
-        // Re-acquire wake lock when page becomes visible
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && document.body.classList.contains('alarm-active')) {
-                await requestWakeLock();
-                document.getElementById('warningBanner').classList.remove('show');
-            } else if (document.hidden && document.body.classList.contains('alarm-active')) {
-                document.getElementById('warningBanner').classList.add('show');
-            }
-        });
-
         // Day selection
         document.querySelectorAll('.day-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -807,9 +727,6 @@
 
         // Start alarm function
         async function startAlarm(duration) {
-            // Request wake lock
-            await requestWakeLock();
-
             // Request fullscreen
             try {
                 await document.documentElement.requestFullscreen();
@@ -899,9 +816,6 @@
             if (document.fullscreenElement) {
                 await document.exitFullscreen();
             }
-
-            // Release wake lock
-            await releaseWakeLock();
 
             // Reset alarm window
             document.getElementById('alarmWindow').style.backgroundColor = '#000000';
