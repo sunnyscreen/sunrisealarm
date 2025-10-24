@@ -227,7 +227,7 @@
 </head>
 <body>
     <div class="container">
-        <a href="index.html" class="back-link">← Back to Home</a>
+        <a href="/" class="back-link">← Back to Home</a>
 
         <header>
             <h1>Sunrise & Sunset Data</h1>
@@ -251,7 +251,7 @@
         <div id="status" class="status hidden"></div>
 
         <div class="table-container" id="tableContainer" style="display: none;">
-            <table>
+            <table id="dataTable">
                 <thead>
                     <tr>
                         <th>Day</th>
@@ -276,6 +276,17 @@
             if (savedKey) {
                 document.getElementById('apiKey').value = savedKey;
             }
+        });
+
+        // Save API key to localStorage on blur
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiKeyInput = document.getElementById('apiKey');
+            apiKeyInput.addEventListener('blur', () => {
+                const value = apiKeyInput.value.trim();
+                if (value) {
+                    localStorage.setItem('openai_api_key', value);
+                }
+            });
         });
 
         function showStatus(message, type) {

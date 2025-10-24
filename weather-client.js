@@ -34,27 +34,32 @@ async function fetchWeatherRecommendations() {
  */
 async function getWeatherRecommendations() {
   const cached = localStorage.getItem(CACHE_KEY);
-  const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
 
   // Check if cache is valid
-  if (cached && expiry) {
-    const expiryDate = new Date(parseInt(expiry));
-    if (expiryDate > new Date()) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {
-        console.error('Failed to parse cached weather data:', e);
+  if (cached) {
+    try {
+      const cacheObject = JSON.parse(cached);
+      if (cacheObject.expiry && cacheObject.data) {
+        const expiryDate = new Date(cacheObject.expiry);
+        if (expiryDate > new Date()) {
+          return cacheObject.data;
+        }
       }
+    } catch (e) {
+      console.error('Failed to parse cached weather data:', e);
     }
   }
 
   // Fetch new recommendations
   const recommendations = await fetchWeatherRecommendations();
 
-  // Cache the recommendations
+  // Cache the recommendations with expiry in a single object
   const expiryTime = Date.now() + (CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000);
-  localStorage.setItem(CACHE_KEY, JSON.stringify(recommendations));
-  localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
+  const cacheObject = {
+    data: recommendations,
+    expiry: expiryTime
+  };
+  localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObject));
 
   return recommendations;
 }
