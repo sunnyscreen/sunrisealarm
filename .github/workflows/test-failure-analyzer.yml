@@ -1,4 +1,4 @@
-name: Test Failure Analyzer
+name: Analyze failed E2E tests
 
 on:
   workflow_run:
