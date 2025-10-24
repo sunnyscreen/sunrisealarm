@@ -1,4 +1,4 @@
-name: Test Failure Analyzer
+name: Analyze failed E2E tests
 
 on:
   workflow_run:
@@ -94,12 +94,10 @@ jobs:
           const runUrl = context.payload.workflow_run.html_url;
           const prNumber = ${{ steps.find-pr.outputs.pr_number }};
 
-          const body = `## 🔍 Test Failure Analysis
-
-${analysis}
-
----
-<sub>View detailed test results on the [test dashboard](https://preview.sunnyscreen.art/tests) | Run: [#${runId}](${runUrl})</sub>`;
+          const body = '## 🔍 Test Failure Analysis\n\n' +
+            analysis + '\n\n' +
+            '---\n' +
+            '<sub>View detailed test results on the [test dashboard](https://preview.sunnyscreen.art/tests) | Run: [#' + runId + '](' + runUrl + ')</sub>';
 
           // Check if we already commented
           const { data: comments } = await github.rest.issues.listComments({
