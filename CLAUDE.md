@@ -47,23 +47,23 @@ The app calculates the next valid alarm time by:
 
 ### Two-Tier Test Strategy
 
+**All tests run exclusively in CI/CD pipeline - no local testing.**
+
 1. **Unit Tests** (Jest)
    - Test `alarm-utils.js` pure functions
    - Coverage threshold: 80% for branches, functions, lines, statements
-   - Run with: `npm test`
-   - Watch mode: `npm run test:watch`
+   - Run automatically in CI on every push
 
 2. **E2E Tests** (Playwright)
    - Test web app functionality (`tests/e2e/webapp.spec.js`)
    - Test alarm timing logic (`tests/e2e/alarm-timing.spec.js`)
-   - Run locally with: `npm run test:e2e`
-   - Run against preview deployment: `npm run test:e2e:preview`
+   - Run automatically in CI against Vercel preview deployment
 
 ### Test Dashboard
-- Interactive dashboard at `/tests` showing all test results
-- Local server: `npm run test:dashboard` → http://localhost:3000/tests
-- Deployed version: Auto-updated on deployments via Vercel
-- **AI-Powered Failure Analysis**: When tests fail, the dashboard displays automated recommendations for fixes
+- Interactive dashboard at `/tests` showing CI test results
+- View at: https://preview.sunnyscreen.art/tests (preview) or https://sunnyscreen.art/tests (production)
+- Auto-updated on every deployment via Vercel
+- **AI-Powered Failure Analysis**: When tests fail in CI, the dashboard displays automated recommendations for fixes
 
 ## CI/CD Pipeline
 
@@ -98,38 +98,23 @@ The analyzer provides:
 
 ## Common Development Commands
 
-### Running the App
+### Running the App Locally
 ```bash
 npm start                    # Start local development server on http://localhost:3000
                              # Opens web app at http://localhost:3000/app
-npm run test:dashboard       # Same as npm start (serves test dashboard)
 ```
 
 ### Testing
-```bash
-npm test                     # Run unit tests with JSON output
-npm run test:watch           # Run unit tests in watch mode
-npm run test:e2e             # Run E2E tests against local server
-npm run test:e2e:preview     # Run E2E tests against Vercel preview
-```
+**All testing happens in CI/CD - no local test execution.**
 
-### Running Single Tests
-```bash
-# Jest - run specific test file
-npx jest alarm-utils.test.js
+To view test results:
+- Visit the test dashboard at https://preview.sunnyscreen.art/tests (preview branch)
+- Or https://sunnyscreen.art/tests (main branch)
+- Tests run automatically on every push to GitHub
 
-# Jest - run tests matching pattern
-npx jest --testNamePattern="calculateNextAlarm"
-
-# Playwright - run specific test file
-npx playwright test tests/e2e/webapp.spec.js
-
-# Playwright - run specific test by name
-npx playwright test -g "should load the app with default configuration"
-
-# Playwright - debug mode with headed browser
-npx playwright test --debug
-```
+To trigger tests:
+- Push to `preview` branch → triggers preview deployment → runs full test suite
+- Tests pass → auto-merges to `main` → deploys to production
 
 ## Important Implementation Notes
 
