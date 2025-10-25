@@ -565,12 +565,11 @@
             </div>
         </div>
 
-        <div class="timestamp" id="last-updated"></div>
     </div>
 
     <script>
-        let jestStats = { total: 0, passed: 0, failed: 0, duration: 0 };
-        let playwrightStats = { total: 0, passed: 0, failed: 0, duration: 0 };
+        let jestStats = { total: 0, passed: 0, failed: 0, duration: 0, timestamp: null };
+        let playwrightStats = { total: 0, passed: 0, failed: 0, duration: 0, timestamp: null };
 
         async function loadTestResults() {
             // Load failure analysis first (will be used for inline display)
@@ -612,7 +611,6 @@
             }
 
             updateCombinedStats();
-            updateTimestamp();
         }
 
         function displayJestResults(data) {
@@ -644,12 +642,28 @@
                 });
             });
 
+            // Calculate test completion timestamp
+            let completionTime = null;
+            if (data.startTime) {
+                // Jest stores timestamps in milliseconds
+                const totalDuration = data.testResults.reduce((sum, file) => {
+                    return sum + (file.perfStats?.end - file.perfStats?.start || 0);
+                }, 0);
+                completionTime = new Date(data.startTime + totalDuration);
+            }
+
+            // Add timestamp at the bottom
+            if (completionTime) {
+                html += `<div class="timestamp">Last updated: ${completionTime.toLocaleString()}</div>`;
+            }
+
             container.innerHTML = html;
             jestStats = {
                 total: totalTests,
                 passed: passedTests,
                 failed: failedTests,
-                duration: data.startTime ? new Date().getTime() - data.startTime : 0
+                duration: data.startTime ? new Date().getTime() - data.startTime : 0,
+                timestamp: completionTime
             };
             updateCombinedStats();
         }
@@ -666,6 +680,7 @@
             let totalTests = 0;
             let passedTests = 0;
             let failedTests = 0;
+            let latestCompletionTime = null;
 
             // Parse Playwright results structure
             function processSpecs(specs, suiteName) {
@@ -683,8 +698,14 @@
                         const projectInfo = spec.tests.map(t => t.projectName).join(', ');
                         const errorMsg = result.error ? result.error.message.substring(0, 200) : '';
 
-                        // Extract timestamp
+                        // Extract timestamp and track latest completion time
                         const timestamp = result.startTime ? new Date(result.startTime).toLocaleString() : '';
+                        if (result.startTime && result.duration) {
+                            const completionTime = new Date(new Date(result.startTime).getTime() + result.duration);
+                            if (!latestCompletionTime || completionTime > latestCompletionTime) {
+                                latestCompletionTime = completionTime;
+                            }
+                        }
 
                         // Extract attachments (videos and screenshots)
                         const videos = [];
@@ -790,13 +811,19 @@
 
             data.suites.forEach(suite => processSuite(suite));
 
+            // Add timestamp at the bottom
+            if (latestCompletionTime) {
+                html += `<div class="timestamp">Last updated: ${latestCompletionTime.toLocaleString()}</div>`;
+            }
+
             container.innerHTML = html || '<div class="no-data">No tests executed.</div>';
 
             playwrightStats = {
                 total: totalTests,
                 passed: passedTests,
                 failed: failedTests,
-                duration: data.stats ? data.stats.duration : 0
+                duration: data.stats ? data.stats.duration : 0,
+                timestamp: latestCompletionTime
             };
             updateCombinedStats();
         }
@@ -836,12 +863,6 @@
             if (ms < 1000) return Math.round(ms) + 'ms';
             if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
             return (ms / 60000).toFixed(1) + 'min';
-        }
-
-        function updateTimestamp() {
-            const now = new Date();
-            document.getElementById('last-updated').textContent =
-                'Last updated: ' + now.toLocaleString();
         }
 
         async function loadFailureAnalysis() {
