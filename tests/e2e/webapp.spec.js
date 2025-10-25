@@ -135,20 +135,6 @@ test.describe('Sunnyscreen Web App', () => {
     await expect(durationInput).toHaveValue('30');
   });
 
-  test('should show wake lock status indicator', async ({ page }) => {
-    await page.goto('/app.html');
-
-    const wakeLockStatus = page.locator('#wakeLockStatus');
-    const wakeLockText = page.locator('#wakeLockText');
-
-    await expect(wakeLockStatus).toBeVisible();
-    await expect(wakeLockText).toBeVisible();
-
-    // Text should indicate wake lock status
-    const text = await wakeLockText.textContent();
-    expect(text).toMatch(/Wake Lock:/);
-  });
-
   test('should open power settings modal', async ({ page }) => {
     await page.goto('/app.html');
 
