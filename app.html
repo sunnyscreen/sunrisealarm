@@ -418,12 +418,13 @@
 
         <div class="next-alarm" id="nextAlarm" style="display: none;"></div>
 
-        <button class="btn-info" id="powerBtn" style="margin-top: 12px;">⚡ Power Settings</button>
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="#" id="powerBtn" style="font-size: 16px; color: rgba(255, 149, 0, 0.8); text-decoration: none; cursor: pointer;">⚡ Power settings tips</a>
+        </div>
 
         <div style="display: flex; gap: 12px; margin-top: 12px;" id="authButtons">
             <button class="btn-info" id="adminBtn" style="flex: 1; display: none;">Admin Panel</button>
             <button class="btn-info" id="logoutBtn" style="flex: 1; display: none;">Logout</button>
-            <button class="btn-info" id="loginBtn" style="flex: 1; display: none;">Login / Signup</button>
         </div>
 
         <div style="text-align: center; margin-top: 12px; font-size: 14px; color: rgba(255, 255, 255, 0.5);" id="userInfo"></div>
@@ -578,12 +579,10 @@
         function updateAuthUI() {
             const adminBtn = document.getElementById('adminBtn');
             const logoutBtn = document.getElementById('logoutBtn');
-            const loginBtn = document.getElementById('loginBtn');
             const userInfo = document.getElementById('userInfo');
             const authLink = document.getElementById('authLink');
 
             if (currentUser) {
-                loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'block';
 
                 if (currentUser.role === 'admin') {
@@ -603,11 +602,9 @@
                     }
                 };
             } else {
-                loginBtn.style.display = 'block';
                 logoutBtn.style.display = 'none';
                 adminBtn.style.display = 'none';
-                userInfo.textContent = 'Using local storage (not synced)';
-                userInfo.style.display = 'block';
+                userInfo.style.display = 'none';
 
                 // Update bottom auth link for signed-out users
                 authLink.textContent = 'Sign in';
@@ -832,7 +829,8 @@
         });
 
         // Power settings modal
-        document.getElementById('powerBtn').addEventListener('click', () => {
+        document.getElementById('powerBtn').addEventListener('click', (e) => {
+            e.preventDefault();
             document.getElementById('powerModal').classList.add('show');
         });
 
@@ -848,10 +846,6 @@
         });
 
         // Auth button handlers
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            window.location.href = '/auth.html';
-        });
-
         document.getElementById('logoutBtn').addEventListener('click', () => {
             if (typeof logout !== 'undefined') {
                 logout();

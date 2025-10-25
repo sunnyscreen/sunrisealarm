@@ -16,10 +16,6 @@ test.describe('Authentication Flow', () => {
     await expect(authLink).toBeVisible();
     await expect(authLink).toHaveText('Sign in');
 
-    // Should show "Login / Signup" button
-    const loginBtn = page.locator('#loginBtn');
-    await expect(loginBtn).toBeVisible();
-
     // Should NOT show logout or admin buttons
     const logoutBtn = page.locator('#logoutBtn');
     const adminBtn = page.locator('#adminBtn');
@@ -32,16 +28,6 @@ test.describe('Authentication Flow', () => {
 
     const authLink = page.locator('#authLink');
     await authLink.click();
-
-    // Should navigate to auth page
-    await expect(page).toHaveURL(/\/auth/);
-  });
-
-  test('should navigate to auth page when clicking login button', async ({ page }) => {
-    await page.goto('/app');
-
-    const loginBtn = page.locator('#loginBtn');
-    await loginBtn.click();
 
     // Should navigate to auth page
     await expect(page).toHaveURL(/\/auth/);
@@ -217,14 +203,6 @@ test.describe('Authentication Flow', () => {
     await expect(userInfo).toBeVisible();
     await expect(userInfo).toContainText('user@test.com');
     await expect(userInfo).toContainText('free');
-  });
-
-  test('should show local storage message for unauthenticated users', async ({ page }) => {
-    await page.goto('/app');
-
-    const userInfo = page.locator('#userInfo');
-    await expect(userInfo).toBeVisible();
-    await expect(userInfo).toContainText('Using local storage (not synced)');
   });
 
   test('should reject invalid credentials', async ({ page }) => {
