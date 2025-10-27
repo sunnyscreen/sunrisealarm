@@ -138,14 +138,14 @@ test.describe('Sunnyscreen Web App', () => {
   test('should open power settings modal', async ({ page }) => {
     await page.goto('/app.html');
 
-    const powerBtn = page.locator('#powerBtn');
+    const powerLink = page.locator('#powerBtn');
     const modal = page.locator('#powerModal');
 
     // Modal should be hidden initially
     await expect(modal).not.toHaveClass(/show/);
 
-    // Click power button
-    await powerBtn.click();
+    // Click power settings tips link
+    await powerLink.click();
 
     // Modal should be visible
     await expect(modal).toHaveClass(/show/);
@@ -158,12 +158,12 @@ test.describe('Sunnyscreen Web App', () => {
   test('should close power settings modal', async ({ page }) => {
     await page.goto('/app.html');
 
-    const powerBtn = page.locator('#powerBtn');
+    const powerLink = page.locator('#powerBtn');
     const modal = page.locator('#powerModal');
     const closeBtn = page.locator('.close-modal');
 
     // Open modal
-    await powerBtn.click();
+    await powerLink.click();
     await expect(modal).toHaveClass(/show/);
 
     // Close via button
