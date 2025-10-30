@@ -159,24 +159,18 @@ test.describe('Sunrise Data Table', () => {
     expect(expectedFilename).toMatch(/sunrise-sunset-data-\d{4}-\d{2}-\d{2}\.csv/);
   });
 
-  test('should have link in homepage footer', async ({ page }) => {
+  test('homepage footer should not include sunrise data link', async ({ page }) => {
     await page.goto('/');
 
-    // Check that homepage has link to sunrise data page
+    // The sunrise data footer link was intentionally removed
     const sunriseDataLink = page.locator('a[href="sunrise-data.html"]');
-    await expect(sunriseDataLink).toBeVisible();
-    await expect(sunriseDataLink).toContainText('Sunrise Data');
+    await expect(sunriseDataLink).toHaveCount(0);
   });
 
-  test('should navigate from homepage to sunrise data page', async ({ page }) => {
-    await page.goto('/');
+  test('should load sunrise data page directly', async ({ page }) => {
+    await page.goto('/sunrise-data.html');
 
-    // Click the sunrise data link
-    const sunriseDataLink = page.locator('a[href="sunrise-data.html"]');
-    await sunriseDataLink.click();
-
-    // Should navigate to sunrise data page
-    // Match with or without .html extension (Vercel removes it in production)
+    // Should be on sunrise data page
     await expect(page).toHaveURL(/.*sunrise-data(\.html)?$/);
     await expect(page.locator('h1')).toContainText('Sunrise & Sunset Data');
   });
