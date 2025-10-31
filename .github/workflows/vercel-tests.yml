@@ -5,7 +5,6 @@ on:
     branches: ['**']
   pull_request:
     branches: ['**']
-  deployment_status:
 
 jobs:
   # Run unit tests on every push and PR
@@ -89,207 +88,137 @@ jobs:
         path: test-results/
         retention-days: 30
 
-  # Run E2E tests after Vercel deployment succeeds AND unit tests pass
-  # Note: Cannot use 'needs: unit-tests' because this job runs on deployment_status events
-  # while unit-tests runs on push/pull_request events (different workflow runs)
-  e2e-tests:
-    name: E2E Tests (Preview)
+  # Determine preview URL for E2E tests (only for push events, not PRs)
+  wait-for-deployment:
+    name: Set Preview URL
     runs-on: ubuntu-latest
+    needs: unit-tests
+    if: |
+      github.event_name == 'push' &&
+      needs.unit-tests.result == 'success' &&
+      !startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+
+    steps:
+    - name: Set preview URL
+      id: wait
+      run: |
+        branch=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+        if [ "$branch" = "main" ]; then
+          PREVIEW_URL="https://sunnyscreen.art"
+          ENVIRONMENT="Production"
+        else
+          PREVIEW_URL="https://preview.sunnyscreen.art"
+          ENVIRONMENT="Preview"
+        fi
+        echo "Using preview URL: $PREVIEW_URL for branch: $branch"
+        echo "deployment_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+        echo "deployment_environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        echo "✅ Preview URL set to: $PREVIEW_URL"
+
+  # Run E2E tests after deployment completes AND unit tests pass
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, wait-for-deployment]
+    if: |
+      github.event_name == 'push' &&
+      needs.unit-tests.result == 'success' &&
+      needs.wait-for-deployment.result == 'success' &&
+      !startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: read
       pull-requests: write
       checks: read
-      statuses: read
-    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+      statuses: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Verify unit tests passed
-      id: check-unit-tests
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const commitSha = process.env.GITHUB_SHA || context.sha;
-          core.info(`Checking unit test status for commit: ${commitSha}`);
-          
-          // Get all status checks for this commit
-          const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: commitSha
-          });
-          
-          // Look for unit test status
-          const unitTestStatus = statuses.find(status => 
-            status.context === 'tests/unit' || 
-            status.context === 'Unit Tests' ||
-            status.context.includes('unit')
-          );
-          
-          // If no status found, wait a bit for unit tests to complete
-          if (!unitTestStatus) {
-            core.warning('No unit test status found. Waiting for unit tests to complete...');
-            await new Promise(resolve => setTimeout(resolve, 15000));
-            
-            const { data: retryStatuses } = await github.rest.repos.listCommitStatusesForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: commitSha
-            });
-            
-            const retryStatus = retryStatuses.find(status => 
-              status.context === 'tests/unit' || 
-              status.context === 'Unit Tests' ||
-              status.context.includes('unit')
-            );
-            
-            if (!retryStatus) {
-              core.setFailed('Unit test status not found after waiting. Cannot proceed with E2E tests without confirming unit tests passed.');
-              core.setOutput('passed', 'false');
-              return;
-            }
-            
-            // Use the retried status for further checks
-            const unitTestStatusFinal = retryStatus;
-            
-            if (unitTestStatusFinal.state === 'failure' || unitTestStatusFinal.state === 'error') {
-              core.setFailed(`Unit tests failed. Status: ${unitTestStatusFinal.state}. Cannot proceed with E2E tests.`);
-              core.setOutput('passed', 'false');
-              return;
-            } else if (unitTestStatusFinal.state === 'success') {
-              core.info('✅ Unit tests passed. Proceeding with E2E tests.');
-              core.setOutput('passed', 'true');
-              return;
-            } else {
-              core.setFailed(`Unit tests are still ${unitTestStatusFinal.state}. Cannot proceed with E2E tests until unit tests complete.`);
-              core.setOutput('passed', 'false');
-              return;
-            }
-          }
-          
-          core.info(`Unit test status: ${unitTestStatus.state} - ${unitTestStatus.description || 'No description'}`);
-          
-          if (unitTestStatus.state === 'failure' || unitTestStatus.state === 'error') {
-            core.setFailed(`Unit tests failed. Status: ${unitTestStatus.state}. Cannot proceed with E2E tests.`);
-            core.setOutput('passed', 'false');
-          } else if (unitTestStatus.state === 'success') {
-            core.info('✅ Unit tests passed. Proceeding with E2E tests.');
-            core.setOutput('passed', 'true');
-          } else if (unitTestStatus.state === 'pending') {
-            core.warning('Unit tests are still pending. Waiting for them to complete...');
-            
-            // Wait and retry with exponential backoff (up to 30 seconds total)
-            let waitTime = 10000;
-            let maxRetries = 3;
-            let lastStatus = unitTestStatus;
-            
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-              await new Promise(resolve => setTimeout(resolve, waitTime));
-              
-              const { data: updatedStatuses } = await github.rest.repos.listCommitStatusesForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: commitSha
-              });
-              
-              const updatedStatus = updatedStatuses.find(status => 
-                status.context === 'tests/unit' || 
-                status.context === 'Unit Tests' ||
-                status.context.includes('unit')
-              );
-              
-              if (!updatedStatus) {
-                continue; // Keep waiting
-              }
-              
-              lastStatus = updatedStatus;
-              
-              if (updatedStatus.state === 'failure' || updatedStatus.state === 'error') {
-                core.setFailed(`Unit tests failed after wait. Status: ${updatedStatus.state}`);
-                core.setOutput('passed', 'false');
-                return;
-              } else if (updatedStatus.state === 'success') {
-                core.info('✅ Unit tests passed after wait. Proceeding with E2E tests.');
-                core.setOutput('passed', 'true');
-                return;
-              }
-              
-              // Still pending, continue waiting
-              core.info(`Unit tests still pending (attempt ${attempt + 1}/${maxRetries})...`);
-            }
-            
-            // After max retries, still pending or unknown
-            core.setFailed(`Unit tests did not complete after ${maxRetries * waitTime / 1000} seconds. Cannot proceed with E2E tests until unit tests complete.`);
-            core.setOutput('passed', 'false');
-          } else {
-            core.setFailed(`Unknown or unexpected unit test status: ${unitTestStatus.state}. Cannot proceed with E2E tests.`);
-            core.setOutput('passed', 'false');
-          }
 
     - name: Setup Node.js
-      if: steps.check-unit-tests.outputs.passed != 'false'
       uses: actions/setup-node@v4
       with:
         node-version: 20.x
         cache: 'npm'
 
     - name: Install dependencies
-      if: steps.check-unit-tests.outputs.passed != 'false'
       run: npm ci
 
     - name: Install Playwright browsers
-      if: steps.check-unit-tests.outputs.passed != 'false'
       run: npx playwright install --with-deps chromium
 
     - name: Seed test users
-      if: steps.check-unit-tests.outputs.passed != 'false'
       run: |
-        SEED_URL="${{ github.event.deployment_status.target_url }}/api/seed-test-users?secret=${{ secrets.SEED_SECRET }}"
+        PREVIEW_URL="${{ needs.wait-for-deployment.outputs.deployment_url }}"
+        SEED_URL="${PREVIEW_URL}/api/seed-test-users?secret=${{ secrets.SEED_SECRET }}"
         echo "Seeding test users at: ${SEED_URL}"
         curl -X POST "${SEED_URL}" \
           -H "Content-Type: application/json" \
           -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
           || echo "Seed failed, continuing anyway"
 
-    - name: Determine deployment URL
-      if: steps.check-unit-tests.outputs.passed != 'false'
-      id: deployment-url
+    - name: Validate preview URL
+      id: validate-url
       run: |
-        # Vercel sets deployment environment to "Production" for main branch
-        ENV="${{ github.event.deployment_status.environment }}"
-        TARGET_URL="${{ github.event.deployment_status.target_url }}"
-
-        echo "Deployment environment: $ENV"
-        echo "Target URL: $TARGET_URL"
-
-        # Use exact deployment URL for non-production to ensure latest changes
-        if [[ "$ENV" == "Production" ]]; then
-          echo "url=https://sunnyscreen.art" >> $GITHUB_OUTPUT
-          echo "Using production URL: https://sunnyscreen.art"
-        else
-          echo "url=$TARGET_URL" >> $GITHUB_OUTPUT
-          echo "Using deployment URL: $TARGET_URL"
+        PREVIEW_URL="${{ needs.wait-for-deployment.outputs.deployment_url }}"
+        if [ -z "$PREVIEW_URL" ]; then
+          echo "❌ ERROR: Preview URL is empty!"
+          echo "The wait-for-deployment job did not provide a preview URL."
+          echo "This means the workflow is misconfigured."
+          exit 1
         fi
+        echo "✅ Preview URL: $PREVIEW_URL"
 
-    - name: Run E2E tests against Vercel preview
-      if: steps.check-unit-tests.outputs.passed != 'false'
+    - name: Run E2E tests
       id: e2e-tests
       env:
-        BASE_URL: ${{ steps.deployment-url.outputs.url }}
+        BASE_URL: ${{ needs.wait-for-deployment.outputs.deployment_url }}
         PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
         PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       run: |
-        echo "Testing deployment at: $BASE_URL"
+        if [ -z "$BASE_URL" ]; then
+          echo "❌ ERROR: BASE_URL is empty. Cannot run E2E tests."
+          exit 1
+        fi
+        echo "Testing preview deployment at: $BASE_URL"
         npm run test:e2e:preview
       continue-on-error: false
 
-    - name: Find PR from preview to main
-      id: find-pr-for-status
+    - name: Update commit status on success
+      if: success()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: 'success',
+            target_url: '${{ needs.wait-for-deployment.outputs.deployment_url }}',
+            description: 'E2E tests passed',
+            context: 'tests/e2e'
+          });
+
+    - name: Update commit status on failure
       if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: 'failure',
+            target_url: '${{ needs.wait-for-deployment.outputs.deployment_url }}',
+            description: 'E2E tests failed',
+            context: 'tests/e2e'
+          });
+
+    - name: Find PR from preview to main (for preview branch)
+      id: find-pr-for-status
+      if: failure() && github.ref == 'refs/heads/preview'
       uses: actions/github-script@v7
       with:
         script: |
@@ -312,7 +241,7 @@ jobs:
               repo: context.repo.repo,
               sha: pr.head.sha,
               state: 'failure',
-              target_url: '${{ github.event.deployment_status.target_url }}',
+              target_url: '${{ needs.wait-for-deployment.outputs.deployment_url }}',
               description: 'E2E tests failed on preview deployment',
               context: 'tests/e2e'
             });
@@ -323,9 +252,9 @@ jobs:
     - name: Report E2E test failure
       if: failure()
       run: |
-        echo "❌ E2E tests failed on preview deployment"
-        echo "📍 Deployment URL: ${{ github.event.deployment_status.target_url }}"
-        echo "⏸️  PR will not be merged. Check test results and fix issues before retrying."
+        echo "❌ E2E tests failed"
+        echo "📍 Preview URL: ${{ needs.wait-for-deployment.outputs.deployment_url }}"
+        echo "⏸️  Workflow stopped. Fix issues before retrying."
 
     - name: Upload E2E test results
       if: always()
@@ -336,19 +265,21 @@ jobs:
         retention-days: 30
 
   # Promote to production after E2E tests pass on preview branch
-  # Auto-merges the PR from preview to main instead of direct git merge
   promote-to-production:
     name: Promote to Production (Auto-merge PR)
     runs-on: ubuntu-latest
-    needs: e2e-tests
+    needs: [unit-tests, wait-for-deployment, e2e-tests]
     permissions:
       contents: write
       pull-requests: write
       checks: write
     if: |
-      github.event_name == 'deployment_status' &&
-      github.event.deployment_status.state == 'success' &&
-      github.event.deployment_status.environment != 'Production'
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/preview' &&
+      needs.unit-tests.result == 'success' &&
+      needs.wait-for-deployment.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
+      needs.wait-for-deployment.outputs.deployment_environment != 'Production'
 
     steps:
     - name: Checkout code
@@ -357,26 +288,8 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Check if preview branch
-      id: check_branch
-      run: |
-        # GitHub Actions checks out in detached HEAD, so check remote branch
-        git fetch origin preview
-        CURRENT_SHA=$(git rev-parse HEAD)
-        PREVIEW_SHA=$(git rev-parse origin/preview)
-        echo "Current SHA: $CURRENT_SHA"
-        echo "Preview SHA: $PREVIEW_SHA"
-        if [ "$CURRENT_SHA" != "$PREVIEW_SHA" ]; then
-          echo "Not on preview branch commit, skipping promotion"
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "On preview branch commit, proceeding with promotion"
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Find PR from preview to main
       id: find-pr
-      if: steps.check_branch.outputs.skip != 'true'
       uses: actions/github-script@v7
       with:
         script: |
@@ -397,15 +310,8 @@ jobs:
           core.info(`Found PR #${pr.number}: ${pr.title}`);
           core.setOutput('pr_number', pr.number);
           core.setOutput('pr_sha', pr.head.sha);
-          
-          // Verify PR head SHA matches current deployment
-          const currentSHA = process.env.GITHUB_SHA || context.sha;
-          if (pr.head.sha !== currentSHA) {
-            core.warning(`PR head SHA (${pr.head.sha}) does not match deployment SHA (${currentSHA}). Continuing anyway.`);
-          }
 
     - name: Update PR status - Tests passing
-      if: steps.check_branch.outputs.skip != 'true'
       uses: actions/github-script@v7
       with:
         script: |
@@ -414,26 +320,24 @@ jobs:
             repo: context.repo.repo,
             sha: '${{ steps.find-pr.outputs.pr_sha }}',
             state: 'success',
-            target_url: '${{ github.event.deployment_status.target_url }}',
+            target_url: '${{ needs.wait-for-deployment.outputs.deployment_url }}',
             description: 'All tests passed on preview deployment',
             context: 'tests/e2e'
           });
 
     - name: Auto-merge PR
-      if: steps.check_branch.outputs.skip != 'true'
       uses: actions/github-script@v7
       with:
         script: |
           const prNumber = ${{ steps.find-pr.outputs.pr_number }};
           
           try {
-            // Enable auto-merge
             await github.rest.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
               commit_title: `Auto-promote preview to production after E2E tests passed`,
-              commit_message: `Preview deployment: ${{ github.event.deployment_status.target_url }}
+              commit_message: `Preview deployment: ${{ needs.wait-for-deployment.outputs.deployment_url }}
           E2E tests: Passed ✅
 
           🤖 Automated by GitHub Actions`,
@@ -443,7 +347,6 @@ jobs:
             core.info(`✅ Successfully merged PR #${prNumber}`);
           } catch (error) {
             if (error.status === 405) {
-              // PR might already be merged or not mergeable
               const { data: pr } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -463,7 +366,6 @@ jobs:
           }
 
     - name: Deployment initiated
-      if: steps.check_branch.outputs.skip != 'true'
       run: |
         echo "✅ E2E tests passed on preview"
         echo "🚀 Auto-merged PR #${{ steps.find-pr.outputs.pr_number }}"
