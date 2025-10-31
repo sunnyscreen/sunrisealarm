@@ -250,7 +250,7 @@ test.describe('Weather Recommendations', () => {
 
     // Skip validation if quota exceeded or payment required
     if (status === 402 || status === 403) {
-      test.skip(status === 402 || status === 403, 'OpenAI API quota exceeded or payment required');
+      test.skip(status === 402 || status === 403, 'Anthropic API quota exceeded or payment required');
       return;
     }
 
@@ -262,7 +262,7 @@ test.describe('Weather Recommendations', () => {
       const errorCode = data.details.error.code;
       const errorType = data.details.error.type;
       if (errorCode === 'insufficient_quota' || errorType === 'insufficient_quota') {
-        test.skip(true, 'OpenAI API quota exceeded');
+        test.skip(true, 'Anthropic API quota exceeded');
         return;
       }
     }
@@ -284,7 +284,7 @@ test.describe('Weather Recommendations', () => {
 
     // Skip validation if quota exceeded
     if (status === 402 || status === 403) {
-      test.skip(status === 402 || status === 403, 'OpenAI API quota exceeded');
+      test.skip(status === 402 || status === 403, 'Anthropic API quota exceeded');
       return;
     }
 
@@ -295,7 +295,7 @@ test.describe('Weather Recommendations', () => {
       const errorCode = data.details.error.code;
       const errorType = data.details.error.type;
       if (errorCode === 'insufficient_quota' || errorType === 'insufficient_quota') {
-        test.skip(true, 'OpenAI API quota exceeded');
+        test.skip(true, 'Anthropic API quota exceeded');
         return;
       }
     }
@@ -346,7 +346,7 @@ test.describe('Weather Recommendations', () => {
 
     // Skip validation if quota exceeded
     if (status === 402 || status === 403) {
-      test.skip(status === 402 || status === 403, 'OpenAI API quota exceeded');
+      test.skip(status === 402 || status === 403, 'Anthropic API quota exceeded');
       return;
     }
 
@@ -357,7 +357,7 @@ test.describe('Weather Recommendations', () => {
       const errorCode = data.details.error.code;
       const errorType = data.details.error.type;
       if (errorCode === 'insufficient_quota' || errorType === 'insufficient_quota') {
-        test.skip(true, 'OpenAI API quota exceeded');
+        test.skip(true, 'Anthropic API quota exceeded');
         return;
       }
     }
