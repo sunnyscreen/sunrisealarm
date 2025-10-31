@@ -485,6 +485,7 @@
 <body>
     <div class="container">
         <h1>Test Dashboard</h1>
+        <div id="dashboard-timestamp" class="timestamp" style="text-align: center; margin-bottom: 2rem; margin-top: -1rem;"></div>
 
         <div style="text-align: center; margin-bottom: 2rem;">
             <div id="overall-status" style="display: inline-block; padding: 1rem 2rem; border-radius: 12px; font-size: 1.5rem; font-weight: 600; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -631,11 +632,6 @@
                     return sum + (file.perfStats?.end - file.perfStats?.start || 0);
                 }, 0);
                 completionTime = new Date(data.startTime + totalDuration);
-            }
-
-            // Add timestamp at the bottom
-            if (completionTime) {
-                html += `<div class="timestamp">Last updated: ${completionTime.toLocaleString()}</div>`;
             }
 
             container.innerHTML = html;
@@ -805,11 +801,6 @@
             // Build HTML from sorted test items
             let html = testItems.map(item => item.html).join('');
 
-            // Add timestamp at the bottom
-            if (latestCompletionTime) {
-                html += `<div class="timestamp">Last updated: ${latestCompletionTime.toLocaleString()}</div>`;
-            }
-
             container.innerHTML = html || '<div class="no-data">No tests executed.</div>';
 
             playwrightStats = {
@@ -850,6 +841,23 @@
                 statusIcon.textContent = '❌';
                 statusText.textContent = `${failed} test${failed > 1 ? 's' : ''} failing`;
                 overallStatus.style.color = '#ef4444';
+            }
+
+            // Update timestamp beneath title (use latest from either Jest or Playwright)
+            const timestampElement = document.getElementById('dashboard-timestamp');
+            let latestTimestamp = null;
+            if (jestStats.timestamp && playwrightStats.timestamp) {
+                latestTimestamp = jestStats.timestamp > playwrightStats.timestamp ? jestStats.timestamp : playwrightStats.timestamp;
+            } else if (jestStats.timestamp) {
+                latestTimestamp = jestStats.timestamp;
+            } else if (playwrightStats.timestamp) {
+                latestTimestamp = playwrightStats.timestamp;
+            }
+
+            if (latestTimestamp) {
+                timestampElement.textContent = `Last updated: ${latestTimestamp.toLocaleString()}`;
+            } else {
+                timestampElement.textContent = '';
             }
         }
 
