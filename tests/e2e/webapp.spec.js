@@ -21,13 +21,6 @@ test.describe('Sunnyscreen Web App', () => {
 
     await expect(wakeTimeInput).toHaveValue('07:00');
     await expect(durationInput).toHaveValue('30');
-
-    // Check default days (Mon-Fri should be active)
-    const mondayBtn = page.locator('[data-day="1"]');
-    const saturdayBtn = page.locator('[data-day="6"]');
-
-    await expect(mondayBtn).toHaveClass(/active/);
-    await expect(saturdayBtn).not.toHaveClass(/active/);
   });
 
   test('should update wake time', async ({ page }) => {
@@ -58,29 +51,6 @@ test.describe('Sunnyscreen Web App', () => {
     // Reload and verify
     await page.reload();
     await expect(durationInput).toHaveValue('45');
-  });
-
-  test('should toggle day selection', async ({ page }) => {
-    await page.goto('/app.html');
-
-    const saturdayBtn = page.locator('[data-day="6"]');
-    const mondayBtn = page.locator('[data-day="1"]');
-
-    // Saturday should start inactive
-    await expect(saturdayBtn).not.toHaveClass(/active/);
-
-    // Click to activate
-    await saturdayBtn.click();
-    await expect(saturdayBtn).toHaveClass(/active/);
-
-    // Click Monday to deactivate
-    await mondayBtn.click();
-    await expect(mondayBtn).not.toHaveClass(/active/);
-
-    // Reload and verify persistence
-    await page.reload();
-    await expect(saturdayBtn).toHaveClass(/active/);
-    await expect(mondayBtn).not.toHaveClass(/active/);
   });
 
   test('should display next alarm information', async ({ page }) => {
@@ -259,8 +229,6 @@ test.describe('Sunnyscreen Web App', () => {
     // Set custom configuration
     await page.locator('#wakeTime').fill('06:30');
     await page.locator('#duration').fill('45');
-    await page.locator('[data-day="0"]').click(); // Enable Sunday
-    await page.locator('[data-day="1"]').click(); // Disable Monday
 
     await page.waitForTimeout(500);
 
@@ -270,7 +238,5 @@ test.describe('Sunnyscreen Web App', () => {
     // Verify all settings persisted
     await expect(page.locator('#wakeTime')).toHaveValue('06:30');
     await expect(page.locator('#duration')).toHaveValue('45');
-    await expect(page.locator('[data-day="0"]')).toHaveClass(/active/);
-    await expect(page.locator('[data-day="1"]')).not.toHaveClass(/active/);
   });
 });

@@ -65,10 +65,6 @@
             margin-bottom: 20px;
         }
 
-        .form-group:has(.days-group) label {
-            margin-bottom: -16px;
-        }
-
         .form-row {
             display: flex;
             gap: 12px;
@@ -121,37 +117,6 @@
 
         input[type="time"]::-webkit-calendar-picker-indicator {
             display: none;
-        }
-
-        .days-group {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-        }
-
-        .day-btn {
-            padding: 16px 10px;
-            border: 2px solid rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 14px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .day-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .day-btn.active {
-            background: linear-gradient(135deg, rgba(255, 149, 0, 0.3), rgba(255, 107, 0, 0.3));
-            color: #ffffff;
-            border-color: rgba(255, 149, 0, 0.5);
-            box-shadow: 0 0 20px rgba(255, 149, 0, 0.15);
         }
 
         button {
@@ -403,19 +368,6 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Days</label>
-            <div class="days-group">
-                <button class="day-btn" data-day="0">Sun</button>
-                <button class="day-btn active" data-day="1">Mon</button>
-                <button class="day-btn active" data-day="2">Tue</button>
-                <button class="day-btn active" data-day="3">Wed</button>
-                <button class="day-btn active" data-day="4">Thu</button>
-                <button class="day-btn active" data-day="5">Fri</button>
-                <button class="day-btn" data-day="6">Sat</button>
-            </div>
-        </div>
-
         <div class="next-alarm" id="nextAlarm" style="display: none;"></div>
 
         <div style="text-align: center; margin-top: 20px;">
@@ -489,7 +441,6 @@
     <script src="lib/api-client.js"></script>
     <script src="weather-client.js"></script>
     <script>
-        let selectedDays = [1, 2, 3, 4, 5];
         let scheduledTimeout = null;
         let alarmAnimationInterval = null;
         let alarmStartTime = null;
@@ -556,22 +507,9 @@
             const config = await loadConfig();
             document.getElementById('wakeTime').value = config.wakeTime;
             document.getElementById('duration').value = config.duration;
-            selectedDays = config.daysOfWeek;
 
-            // Update day buttons
-            document.querySelectorAll('.day-btn').forEach(btn => {
-                const day = parseInt(btn.dataset.day);
-                if (selectedDays.includes(day)) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-
-            // Initialize - save config to ensure enabled is true if days are selected
-            if (selectedDays.length > 0) {
-                await autoSaveConfig();
-            }
+            // Initialize - save config to ensure enabled is true
+            await autoSaveConfig();
             updateNextAlarm();
             scheduleNextAlarm(await loadConfig());
         }
@@ -615,24 +553,6 @@
             }
         }
 
-        // Day selection
-        document.querySelectorAll('.day-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const day = parseInt(btn.dataset.day);
-
-                if (selectedDays.includes(day)) {
-                    selectedDays = selectedDays.filter(d => d !== day);
-                    btn.classList.remove('active');
-                } else {
-                    selectedDays.push(day);
-                    btn.classList.add('active');
-                }
-
-                await autoSaveConfig();
-            });
-        });
-
         // Auto-save on wake time change (both input and change events)
         document.getElementById('wakeTime').addEventListener('input', async () => await autoSaveConfig());
         document.getElementById('wakeTime').addEventListener('change', async () => await autoSaveConfig());
@@ -660,8 +580,7 @@
             const config = {
                 enabled: true,
                 wakeTime: wakeTimeInput.value,
-                duration: duration,
-                daysOfWeek: selectedDays.sort((a, b) => a - b)
+                duration: duration
             };
 
             await saveConfig(config);
@@ -680,7 +599,7 @@
             }
 
             const now = new Date();
-            const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek, now);
+            const nextAlarm = calculateNextAlarm(config.wakeTime, now);
             const msUntilAlarm = nextAlarm - now;
 
             if (msUntilAlarm > 0 && msUntilAlarm < 2147483647) {
@@ -701,12 +620,12 @@
             const config = await loadConfig();
             const nextAlarmDiv = document.getElementById('nextAlarm');
 
-            if (!config.enabled || selectedDays.length === 0) {
+            if (!config.enabled) {
                 nextAlarmDiv.style.display = 'none';
                 return;
             }
 
-            const nextAlarm = calculateNextAlarm(config.wakeTime, config.daysOfWeek);
+            const nextAlarm = calculateNextAlarm(config.wakeTime);
             const sunriseStart = calculateSunriseStart(nextAlarm, config.duration);
 
             const options = { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };

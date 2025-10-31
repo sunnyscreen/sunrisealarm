@@ -179,35 +179,6 @@ test.describe('Alarm Timing Validation', () => {
     expect(nextAlarmText).toContain('Sunrise begins:');
   });
 
-  test('should recalculate timing when days of week change', async ({ page }) => {
-    await page.goto('/app.html');
-
-    // Set configuration for weekdays
-    await page.locator('#wakeTime').fill('07:00');
-    await page.locator('#duration').fill('30');
-    await page.locator('#wakeTime').blur();
-    await page.waitForTimeout(500);
-
-    const initialText = await page.locator('#nextAlarm').textContent();
-    expect(initialText).toContain('Sunrise begins:');
-
-    // Deselect all weekdays and enable only Sunday
-    await page.locator('[data-day="1"]').click();
-    await page.locator('[data-day="2"]').click();
-    await page.locator('[data-day="3"]').click();
-    await page.locator('[data-day="4"]').click();
-    await page.locator('[data-day="5"]').click();
-    await page.locator('[data-day="0"]').click(); // Enable Sunday
-
-    await page.waitForTimeout(500);
-
-    const updatedText = await page.locator('#nextAlarm').textContent();
-
-    // Next alarm should still show sunrise starting 30 min before alarm
-    expect(updatedText).toContain('Sunrise begins:');
-    expect(updatedText).toMatch(/6:30/);
-  });
-
   test('should validate timing with browser console logs', async ({ page }) => {
     const consoleMessages = [];
     page.on('console', msg => consoleMessages.push(msg.text()));

@@ -7,20 +7,18 @@ const {
   calculateSunriseStart,
   isValidTimeFormat,
   isValidDuration,
-  isValidDaysOfWeek,
   getDefaultConfig,
   validateAndFixConfig
 } = require('../alarm-utils');
 
 describe('Alarm Calculations', () => {
   describe('Next alarm time calculation', () => {
-    test('should schedule alarm for today if time has not passed and day is valid', () => {
-      // Monday at 6:00 AM, alarm set for 7:00 AM on weekdays
-      const currentDate = new Date('2024-10-07T06:00:00'); // Monday
+    test('should schedule alarm for today if time has not passed', () => {
+      // 6:00 AM, alarm set for 7:00 AM (same day)
+      const currentDate = new Date('2024-10-07T06:00:00');
       const wakeTime = '07:00';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
 
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
 
       expect(nextAlarm.getDate()).toBe(7); // Same day
       expect(nextAlarm.getHours()).toBe(7);
@@ -28,93 +26,51 @@ describe('Alarm Calculations', () => {
     });
 
     test('should schedule alarm for tomorrow if time has passed today', () => {
-      // Monday at 8:00 AM, alarm set for 7:00 AM on weekdays
-      const currentDate = new Date('2024-10-07T08:00:00'); // Monday
+      // 8:00 AM, alarm set for 7:00 AM (next day)
+      const currentDate = new Date('2024-10-07T08:00:00');
       const wakeTime = '07:00';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
 
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
 
-      expect(nextAlarm.getDate()).toBe(8); // Tuesday
-      expect(nextAlarm.getDay()).toBe(2); // Tuesday
+      expect(nextAlarm.getDate()).toBe(8); // Next day
       expect(nextAlarm.getHours()).toBe(7);
       expect(nextAlarm.getMinutes()).toBe(0);
     });
 
-    test('should skip to next valid day if today is not in daysOfWeek', () => {
-      // Saturday at 6:00 AM, alarm set for 7:00 AM on weekdays only
-      const currentDate = new Date('2024-10-12T06:00:00'); // Saturday
-      const wakeTime = '07:00';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
-
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
-
-      expect(nextAlarm.getDate()).toBe(14); // Monday
-      expect(nextAlarm.getDay()).toBe(1); // Monday
-      expect(nextAlarm.getHours()).toBe(7);
-    });
-
-    test('should skip weekend to Monday', () => {
-      // Friday at 8:00 AM (after 7am alarm), should schedule for Monday
-      const currentDate = new Date('2024-10-11T08:00:00'); // Friday
-      const wakeTime = '07:00';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
-
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
-
-      expect(nextAlarm.getDate()).toBe(14); // Monday
-      expect(nextAlarm.getDay()).toBe(1); // Monday
-    });
-
-    test('should work with weekend-only schedule', () => {
-      // Thursday at 6:00 AM, alarm set for weekends only
-      const currentDate = new Date('2024-10-10T06:00:00'); // Thursday
-      const wakeTime = '09:00';
-      const daysOfWeek = [0, 6]; // Sun, Sat
-
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
-
-      expect(nextAlarm.getDate()).toBe(12); // Saturday
-      expect(nextAlarm.getDay()).toBe(6); // Saturday
-      expect(nextAlarm.getHours()).toBe(9);
-    });
-
-    test('should work with single day schedule', () => {
-      // Tuesday at 6:00 AM, alarm set for Fridays only
-      const currentDate = new Date('2024-10-08T06:00:00'); // Tuesday
-      const wakeTime = '07:00';
-      const daysOfWeek = [5]; // Friday only
-
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
-
-      expect(nextAlarm.getDate()).toBe(11); // Friday
-      expect(nextAlarm.getDay()).toBe(5); // Friday
-    });
-
     test('should handle midnight alarm time', () => {
-      // Monday at 11:00 PM
-      const currentDate = new Date('2024-10-07T23:00:00'); // Monday
+      // 11:00 PM, alarm for midnight (next day)
+      const currentDate = new Date('2024-10-07T23:00:00');
       const wakeTime = '00:00';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
 
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
 
-      expect(nextAlarm.getDate()).toBe(8); // Tuesday
+      expect(nextAlarm.getDate()).toBe(8); // Next day
       expect(nextAlarm.getHours()).toBe(0);
       expect(nextAlarm.getMinutes()).toBe(0);
     });
 
     test('should handle late night alarm time', () => {
-      // Monday at 10:00 PM, alarm for 11:30 PM
-      const currentDate = new Date('2024-10-07T22:00:00'); // Monday
+      // 10:00 PM, alarm for 11:30 PM (same day)
+      const currentDate = new Date('2024-10-07T22:00:00');
       const wakeTime = '23:30';
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
 
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
 
       expect(nextAlarm.getDate()).toBe(7); // Same day
       expect(nextAlarm.getHours()).toBe(23);
       expect(nextAlarm.getMinutes()).toBe(30);
+    });
+
+    test('should handle alarm time exactly at current time', () => {
+      // 7:00 AM, alarm set for 7:00 AM (next day since time has passed)
+      const currentDate = new Date('2024-10-07T07:00:00');
+      const wakeTime = '07:00';
+
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
+
+      expect(nextAlarm.getDate()).toBe(8); // Next day (time has passed)
+      expect(nextAlarm.getHours()).toBe(7);
+      expect(nextAlarm.getMinutes()).toBe(0);
     });
   });
 
@@ -227,20 +183,6 @@ describe('Alarm Calculations', () => {
       });
     });
 
-    describe('isValidDaysOfWeek', () => {
-      test('should validate correct days array', () => {
-        expect(isValidDaysOfWeek([1, 2, 3, 4, 5])).toBe(true);
-        expect(isValidDaysOfWeek([0, 6])).toBe(true);
-        expect(isValidDaysOfWeek([3])).toBe(true);
-      });
-
-      test('should reject invalid days array', () => {
-        expect(isValidDaysOfWeek([1, 2, 7])).toBe(false);
-        expect(isValidDaysOfWeek([1, 2, -1])).toBe(false);
-        expect(isValidDaysOfWeek([])).toBe(false);
-        expect(isValidDaysOfWeek('123')).toBe(false);
-      });
-    });
   });
 
   describe('Config management', () => {
@@ -249,45 +191,57 @@ describe('Alarm Calculations', () => {
       expect(config.enabled).toBe(false);
       expect(config.wakeTime).toBe('07:00');
       expect(config.duration).toBe(30);
-      expect(config.daysOfWeek).toEqual([1, 2, 3, 4, 5]);
+      expect(config.daysOfWeek).toBeUndefined();
     });
 
     test('should validate and fix valid config', () => {
       const input = {
         enabled: true,
         wakeTime: '08:30',
-        duration: 45,
-        daysOfWeek: [1, 2, 3]
+        duration: 45
       };
       const result = validateAndFixConfig(input);
-      expect(result).toEqual(input);
+      expect(result.enabled).toBe(input.enabled);
+      expect(result.wakeTime).toBe(input.wakeTime);
+      expect(result.duration).toBe(input.duration);
     });
 
     test('should fix invalid config fields', () => {
       const input = {
         enabled: 'yes', // Invalid
         wakeTime: '25:00', // Invalid
-        duration: 100, // Invalid
-        daysOfWeek: [1, 2, 8] // Invalid
+        duration: 100 // Invalid
       };
       const result = validateAndFixConfig(input);
       const defaults = getDefaultConfig();
       expect(result.enabled).toBe(defaults.enabled);
       expect(result.wakeTime).toBe(defaults.wakeTime);
       expect(result.duration).toBe(defaults.duration);
-      expect(result.daysOfWeek).toEqual(defaults.daysOfWeek);
+    });
+
+    test('should ignore daysOfWeek in existing configs (migration)', () => {
+      const input = {
+        enabled: true,
+        wakeTime: '08:30',
+        duration: 45,
+        daysOfWeek: [1, 2, 3] // Should be ignored
+      };
+      const result = validateAndFixConfig(input);
+      expect(result.enabled).toBe(input.enabled);
+      expect(result.wakeTime).toBe(input.wakeTime);
+      expect(result.duration).toBe(input.duration);
+      expect(result.daysOfWeek).toBeUndefined();
     });
   });
 
   describe('Combined alarm and sunrise workflow', () => {
-    test('should calculate complete alarm schedule for weekday morning', () => {
-      // Monday at 6:00 AM, 30 min duration, 7:00 AM alarm
+    test('should calculate complete alarm schedule for morning', () => {
+      // 6:00 AM, 30 min duration, 7:00 AM alarm
       const currentDate = new Date('2024-10-07T06:00:00');
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
-      const nextAlarm = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const nextAlarm = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(nextAlarm, duration);
 
       expect(nextAlarm.getHours()).toBe(7);
