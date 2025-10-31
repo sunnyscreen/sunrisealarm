@@ -506,3 +506,94 @@ jobs:
         echo "✅ E2E tests passed on preview"
         echo "🚀 Auto-merged PR #${{ steps.find-pr.outputs.pr_number }}"
         echo "⏳ Vercel will now deploy to production (sunnyscreen.art)"
+
+  # Auto-merge feature branch PRs after tests pass
+  auto-merge-feature-branches:
+    name: Auto-merge Feature Branch PR
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+      statuses: write
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.unit-tests.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
+      !(github.event.pull_request.head.ref == 'preview' && github.event.pull_request.base.ref == 'main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Auto-merge PR
+      id: merge-pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const prBranch = context.payload.pull_request.head.ref;
+          
+          try {
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              commit_title: `Auto-merge after tests passed`,
+              commit_message: `All tests passed ✅
+
+          🤖 Automated by GitHub Actions`,
+              merge_method: 'merge'
+            });
+            
+            core.info(`✅ Successfully merged PR #${prNumber}`);
+            core.setOutput('branch_name', prBranch);
+            core.setOutput('merged', 'true');
+          } catch (error) {
+            if (error.status === 405) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
+              if (pr.merged) {
+                core.info(`PR #${prNumber} was already merged`);
+                core.setOutput('branch_name', prBranch);
+                core.setOutput('merged', 'true');
+              } else if (!pr.mergeable) {
+                core.setFailed(`PR #${prNumber} is not mergeable. Reasons: ${JSON.stringify(pr)}`);
+              } else {
+                throw error;
+              }
+            } else {
+              throw error;
+            }
+          }
+
+    - name: Delete merged branch
+      if: steps.merge-pr.outputs.merged == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const branchName = '${{ steps.merge-pr.outputs.branch_name }}';
+          
+          try {
+            await github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${branchName}`
+            });
+            core.info(`✅ Successfully deleted branch: ${branchName}`);
+          } catch (error) {
+            // Branch might already be deleted or protected, just log and continue
+            if (error.status === 422) {
+              core.info(`⚠️ Branch ${branchName} may already be deleted or cannot be deleted`);
+            } else {
+              core.warning(`Could not delete branch ${branchName}: ${error.message}`);
+            }
+          }
