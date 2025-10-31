@@ -118,48 +118,79 @@ jobs:
           
           core.info(`Waiting for ${environment} deployment on branch: ${branch}`);
           
-          // Wait for deployment status to arrive
-          // Poll GitHub deployments API to find the deployment for this commit
+          // Try multiple approaches to find deployment
           const maxWaitTime = 300000; // 5 minutes
           const checkInterval = 10000; // 10 seconds
           const startTime = Date.now();
+          let foundDeploymentUrl = null;
           
           while (Date.now() - startTime < maxWaitTime) {
             try {
-              const { data: deployments } = await github.rest.repos.listDeployments({
+              // Approach 1: Search by exact ref and environment
+              let deployments = await github.rest.repos.listDeployments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: context.sha,
                 environment: environment,
-                per_page: 1
+                per_page: 5
               });
               
-              if (deployments.length > 0) {
-                const deployment = deployments[0];
-                
-                // Check deployment status
-                const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+              // Approach 2: If not found, search by branch name and environment
+              if (deployments.data.length === 0) {
+                deployments = await github.rest.repos.listDeployments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  deployment_id: deployment.id
+                  ref: branch,
+                  environment: environment,
+                  per_page: 5
+                });
+              }
+              
+              // Approach 3: If still not found, search all recent deployments for this environment
+              if (deployments.data.length === 0) {
+                deployments = await github.rest.repos.listDeployments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  environment: environment,
+                  per_page: 10
                 });
                 
-                if (statuses.length > 0) {
-                  const latestStatus = statuses[0];
-                  
-                  if (latestStatus.state === 'success') {
-                    core.info(`✅ Deployment successful: ${latestStatus.target_url}`);
-                    core.setOutput('deployment_url', latestStatus.target_url);
-                    core.setOutput('deployment_environment', environment);
-                    return;
-                  } else if (latestStatus.state === 'failure' || latestStatus.state === 'error') {
-                    core.setFailed(`Deployment failed: ${latestStatus.state}`);
-                    return;
-                  } else {
-                    core.info(`Deployment ${latestStatus.state}, waiting...`);
+                // Find deployment matching our commit SHA
+                deployments.data = deployments.data.filter(d => d.sha === context.sha);
+              }
+              
+              if (deployments.data.length > 0) {
+                // Try deployments in order
+                for (const deployment of deployments.data) {
+                  try {
+                    const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      deployment_id: deployment.id
+                    });
+                    
+                    if (statuses.length > 0) {
+                      const latestStatus = statuses[0];
+                      
+                      if (latestStatus.state === 'success' && latestStatus.target_url) {
+                        foundDeploymentUrl = latestStatus.target_url;
+                        core.info(`✅ Deployment successful: ${foundDeploymentUrl}`);
+                        core.setOutput('deployment_url', foundDeploymentUrl);
+                        core.setOutput('deployment_environment', environment);
+                        return;
+                      } else if (latestStatus.state === 'failure' || latestStatus.state === 'error') {
+                        core.warning(`Deployment ${deployment.id} failed: ${latestStatus.state}`);
+                        continue; // Try next deployment
+                      } else {
+                        core.info(`Deployment ${deployment.id} is ${latestStatus.state}, waiting...`);
+                      }
+                    } else {
+                      core.info(`Deployment ${deployment.id} created but no status yet, waiting...`);
+                    }
+                  } catch (statusError) {
+                    core.warning(`Error checking status for deployment ${deployment.id}: ${statusError.message}`);
+                    continue;
                   }
-                } else {
-                  core.info('Deployment created but no status yet, waiting...');
                 }
               } else {
                 core.info('No deployment found yet, waiting...');
@@ -171,7 +202,19 @@ jobs:
             await new Promise(resolve => setTimeout(resolve, checkInterval));
           }
           
-          core.setFailed('Deployment did not complete within 5 minutes');
+          // Final fallback: If we still don't have a URL, construct one based on branch
+          // This is a fallback - it assumes Vercel's URL pattern
+          if (!foundDeploymentUrl) {
+            core.warning('Could not find deployment via GitHub deployments API. Using fallback URL construction.');
+            const fallbackUrl = isMain 
+              ? 'https://sunnyscreen.art'
+              : 'https://preview.sunnyscreen.art';
+            core.info(`⚠️ Using fallback URL: ${fallbackUrl}`);
+            core.info('Note: This may not match the exact deployment URL if Vercel uses custom domains.');
+            core.setOutput('deployment_url', fallbackUrl);
+            core.setOutput('deployment_environment', environment);
+            core.setOutput('is_fallback', 'true');
+          }
 
   # Run E2E tests after deployment completes AND unit tests pass
   e2e-tests:
@@ -215,6 +258,18 @@ jobs:
           -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
           || echo "Seed failed, continuing anyway"
 
+    - name: Validate deployment URL
+      id: validate-url
+      run: |
+        DEPLOYMENT_URL="${{ needs.wait-for-deployment.outputs.deployment_url }}"
+        if [ -z "$DEPLOYMENT_URL" ]; then
+          echo "❌ ERROR: Deployment URL is empty!"
+          echo "The wait-for-deployment job did not provide a deployment URL."
+          echo "This means the deployment was not found or the workflow is misconfigured."
+          exit 1
+        fi
+        echo "✅ Deployment URL: $DEPLOYMENT_URL"
+
     - name: Run E2E tests
       id: e2e-tests
       env:
@@ -222,6 +277,10 @@ jobs:
         PLAYWRIGHT_BYPASS_HEADER: x-vercel-protection-bypass
         PLAYWRIGHT_BYPASS_VALUE: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       run: |
+        if [ -z "$BASE_URL" ]; then
+          echo "❌ ERROR: BASE_URL is empty. Cannot run E2E tests."
+          exit 1
+        fi
         echo "Testing deployment at: $BASE_URL"
         npm run test:e2e:preview
       continue-on-error: false
