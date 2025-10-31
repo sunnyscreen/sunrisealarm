@@ -512,15 +512,15 @@
             </div>
         </div>
 
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab active" data-tab="unit">Unit Tests</button>
-                <button class="tab" data-tab="e2e">E2E Tests</button>
-            </div>
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab" data-tab="unit">Unit Tests</button>
+                    <button class="tab active" data-tab="e2e">E2E Tests</button>
+                </div>
 
-            <div id="unit-tab" class="tab-content active">
-                <div class="tab-header">
-                    <h2 class="tab-title">Unit Tests (Jest)</h2>
+                <div id="unit-tab" class="tab-content">
+                    <div class="tab-header">
+                        <h2 class="tab-title">Unit Tests (Jest)</h2>
                     <a href="test-results/jest-report.html" target="_blank" class="btn btn-primary">View Full Report</a>
                 </div>
                 <div id="jest-results" class="test-results">
@@ -528,9 +528,9 @@
                 </div>
             </div>
 
-            <div id="e2e-tab" class="tab-content">
-                <div class="tab-header">
-                    <h2 class="tab-title">E2E Tests (Playwright)</h2>
+                <div id="e2e-tab" class="tab-content active">
+                    <div class="tab-header">
+                        <h2 class="tab-title">E2E Tests (Playwright)</h2>
                 </div>
                 <div id="playwright-results" class="test-results">
                     <div class="loading">Loading E2E test results...</div>
