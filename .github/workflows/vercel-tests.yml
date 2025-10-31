@@ -116,7 +116,7 @@ jobs:
           const isMain = branch === 'main';
           const environment = isMain ? 'Production' : 'Preview';
           
-          core.info(`Waiting for ${environment} deployment on branch: ${branch}`);
+          core.info(`Waiting for ${environment} deployment on branch: ${branch} (SHA: ${context.sha})`);
           
           // Try multiple approaches to find deployment
           const maxWaitTime = 300000; // 5 minutes
@@ -124,96 +124,114 @@ jobs:
           const startTime = Date.now();
           let foundDeploymentUrl = null;
           
-          while (Date.now() - startTime < maxWaitTime) {
-            try {
-              // Approach 1: Search by exact ref and environment
-              let deployments = await github.rest.repos.listDeployments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: context.sha,
-                environment: environment,
-                per_page: 5
-              });
-              
-              // Approach 2: If not found, search by branch name and environment
-              if (deployments.data.length === 0) {
-                deployments = await github.rest.repos.listDeployments({
+          try {
+            while (Date.now() - startTime < maxWaitTime) {
+              try {
+                // Approach 1: Search by exact ref and environment
+                let deployments = await github.rest.repos.listDeployments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  ref: branch,
+                  ref: context.sha,
                   environment: environment,
                   per_page: 5
                 });
-              }
-              
-              // Approach 3: If still not found, search all recent deployments for this environment
-              if (deployments.data.length === 0) {
-                deployments = await github.rest.repos.listDeployments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  environment: environment,
-                  per_page: 10
-                });
                 
-                // Find deployment matching our commit SHA
-                deployments.data = deployments.data.filter(d => d.sha === context.sha);
+                core.info(`Found ${deployments.data.length} deployment(s) by SHA and environment`);
+                
+                // Approach 2: If not found, search by branch name and environment
+                if (deployments.data.length === 0) {
+                  deployments = await github.rest.repos.listDeployments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: branch,
+                    environment: environment,
+                    per_page: 5
+                  });
+                  core.info(`Found ${deployments.data.length} deployment(s) by branch and environment`);
+                }
+                
+                // Approach 3: If still not found, search all recent deployments for this environment
+                if (deployments.data.length === 0) {
+                  const allDeployments = await github.rest.repos.listDeployments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    environment: environment,
+                    per_page: 10
+                  });
+                  
+                  // Find deployment matching our commit SHA
+                  deployments.data = allDeployments.data.filter(d => d.sha === context.sha);
+                  core.info(`Found ${deployments.data.length} deployment(s) by SHA in recent ${environment} deployments`);
+                }
+                
+                if (deployments.data.length > 0) {
+                  // Try deployments in order
+                  for (const deployment of deployments.data) {
+                    try {
+                      const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        deployment_id: deployment.id
+                      });
+                      
+                      if (statuses.length > 0) {
+                        const latestStatus = statuses[0];
+                        core.info(`Deployment ${deployment.id} status: ${latestStatus.state}, URL: ${latestStatus.target_url || 'none'}`);
+                        
+                        if (latestStatus.state === 'success' && latestStatus.target_url) {
+                          foundDeploymentUrl = latestStatus.target_url;
+                          core.info(`✅ Deployment successful: ${foundDeploymentUrl}`);
+                          core.setOutput('deployment_url', foundDeploymentUrl);
+                          core.setOutput('deployment_environment', environment);
+                          core.setOutput('is_fallback', 'false');
+                          return;
+                        } else if (latestStatus.state === 'failure' || latestStatus.state === 'error') {
+                          core.warning(`Deployment ${deployment.id} failed: ${latestStatus.state}`);
+                          continue; // Try next deployment
+                        } else {
+                          core.info(`Deployment ${deployment.id} is ${latestStatus.state}, waiting...`);
+                        }
+                      } else {
+                        core.info(`Deployment ${deployment.id} created but no status yet, waiting...`);
+                      }
+                    } catch (statusError) {
+                      core.warning(`Error checking status for deployment ${deployment.id}: ${statusError.message}`);
+                      continue;
+                    }
+                  }
+                } else {
+                  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                  core.info(`No deployment found yet (waited ${elapsed}s), waiting...`);
+                }
+              } catch (error) {
+                core.warning(`Error checking deployment: ${error.message}`);
               }
               
-              if (deployments.data.length > 0) {
-                // Try deployments in order
-                for (const deployment of deployments.data) {
-                  try {
-                    const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      deployment_id: deployment.id
-                    });
-                    
-                    if (statuses.length > 0) {
-                      const latestStatus = statuses[0];
-                      
-                      if (latestStatus.state === 'success' && latestStatus.target_url) {
-                        foundDeploymentUrl = latestStatus.target_url;
-                        core.info(`✅ Deployment successful: ${foundDeploymentUrl}`);
-                        core.setOutput('deployment_url', foundDeploymentUrl);
-                        core.setOutput('deployment_environment', environment);
-                        return;
-                      } else if (latestStatus.state === 'failure' || latestStatus.state === 'error') {
-                        core.warning(`Deployment ${deployment.id} failed: ${latestStatus.state}`);
-                        continue; // Try next deployment
-                      } else {
-                        core.info(`Deployment ${deployment.id} is ${latestStatus.state}, waiting...`);
-                      }
-                    } else {
-                      core.info(`Deployment ${deployment.id} created but no status yet, waiting...`);
-                    }
-                  } catch (statusError) {
-                    core.warning(`Error checking status for deployment ${deployment.id}: ${statusError.message}`);
-                    continue;
-                  }
-                }
-              } else {
-                core.info('No deployment found yet, waiting...');
-              }
-            } catch (error) {
-              core.warning(`Error checking deployment: ${error.message}`);
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
             }
-            
-            await new Promise(resolve => setTimeout(resolve, checkInterval));
+          } catch (error) {
+            core.error(`Fatal error in deployment wait loop: ${error.message}`);
           }
           
           // Final fallback: If we still don't have a URL, construct one based on branch
           // This is a fallback - it assumes Vercel's URL pattern
           if (!foundDeploymentUrl) {
-            core.warning('Could not find deployment via GitHub deployments API. Using fallback URL construction.');
+            core.warning('Could not find deployment via GitHub deployments API after 5 minutes. Using fallback URL construction.');
             const fallbackUrl = isMain 
               ? 'https://sunnyscreen.art'
               : 'https://preview.sunnyscreen.art';
             core.info(`⚠️ Using fallback URL: ${fallbackUrl}`);
             core.info('Note: This may not match the exact deployment URL if Vercel uses custom domains.');
-            core.setOutput('deployment_url', fallbackUrl);
+            foundDeploymentUrl = fallbackUrl;
+          }
+          
+          // Always set output, even if using fallback
+          if (!foundDeploymentUrl) {
+            core.setFailed('Failed to determine deployment URL: no deployment found and fallback failed');
+          } else {
+            core.setOutput('deployment_url', foundDeploymentUrl);
             core.setOutput('deployment_environment', environment);
-            core.setOutput('is_fallback', 'true');
+            core.setOutput('is_fallback', foundDeploymentUrl.startsWith('https://preview.sunnyscreen.art') || foundDeploymentUrl.startsWith('https://sunnyscreen.art') ? 'true' : 'false');
           }
 
   # Run E2E tests after deployment completes AND unit tests pass
