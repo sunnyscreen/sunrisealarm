@@ -440,21 +440,43 @@ jobs:
 
     - name: Copy Jest results
       run: |
-        if [ -f "artifact-unit/test-results/jest-results.json" ]; then
-          cp artifact-unit/test-results/jest-results.json test-results/jest-results.json
+        echo "🔍 Searching for Jest results..."
+        JEST_FILE=$(find artifact-unit -name "jest-results.json" -type f 2>/dev/null | head -1)
+        if [ -n "$JEST_FILE" ]; then
+          echo "Found Jest results at: $JEST_FILE"
+          cp "$JEST_FILE" test-results/jest-results.json
           echo "✅ Copied Jest results"
+        elif [ -f "artifact-unit/test-results/jest-results.json" ]; then
+          cp artifact-unit/test-results/jest-results.json test-results/jest-results.json
+          echo "✅ Copied Jest results (standard path)"
+        elif [ -f "artifact-unit/jest-results.json" ]; then
+          cp artifact-unit/jest-results.json test-results/jest-results.json
+          echo "✅ Copied Jest results (direct path)"
         else
-          echo "⚠️ Jest results not found"
+          echo "⚠️ Jest results not found in artifact-unit/"
+          echo "Artifact structure:"
+          find artifact-unit -type f 2>/dev/null | head -10 || echo "artifact-unit directory not found"
         fi
       continue-on-error: true
 
     - name: Copy Playwright results
       run: |
-        if [ -f "artifact-e2e/test-results/playwright-results.json" ]; then
-          cp artifact-e2e/test-results/playwright-results.json test-results/playwright-results.json
+        echo "🔍 Searching for Playwright results..."
+        PLAYWRIGHT_FILE=$(find artifact-e2e -name "playwright-results.json" -type f 2>/dev/null | head -1)
+        if [ -n "$PLAYWRIGHT_FILE" ]; then
+          echo "Found Playwright results at: $PLAYWRIGHT_FILE"
+          cp "$PLAYWRIGHT_FILE" test-results/playwright-results.json
           echo "✅ Copied Playwright results"
+        elif [ -f "artifact-e2e/test-results/playwright-results.json" ]; then
+          cp artifact-e2e/test-results/playwright-results.json test-results/playwright-results.json
+          echo "✅ Copied Playwright results (standard path)"
+        elif [ -f "artifact-e2e/playwright-results.json" ]; then
+          cp artifact-e2e/playwright-results.json test-results/playwright-results.json
+          echo "✅ Copied Playwright results (direct path)"
         else
-          echo "⚠️ Playwright results not found"
+          echo "⚠️ Playwright results not found in artifact-e2e/"
+          echo "Artifact structure:"
+          find artifact-e2e -type f 2>/dev/null | head -10 || echo "artifact-e2e directory not found or E2E tests were skipped"
         fi
       continue-on-error: true
 
