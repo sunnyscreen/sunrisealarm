@@ -136,15 +136,15 @@ test.describe('Homepage and Animated Background', () => {
     await expect(appLink.first()).toBeVisible();
   });
 
-  test('should have footer with sunrise data link', async ({ page }) => {
+  test('should have footer without sunrise data link', async ({ page }) => {
     await page.goto('/');
 
     const footer = page.locator('footer');
     await expect(footer).toBeVisible();
 
-    // Check for sunrise data link
+    // Footer should not contain sunrise data link anymore
     const sunriseDataLink = page.locator('a[href="sunrise-data.html"]');
-    await expect(sunriseDataLink).toBeVisible();
+    await expect(sunriseDataLink).toHaveCount(0);
   });
 
   test('should have responsive design', async ({ page }) => {
@@ -220,15 +220,15 @@ test.describe('Homepage and Animated Background', () => {
     expect(hasColorTransitions).toBe(true);
   });
 
-  test('should show features section', async ({ page }) => {
+  test('should show informative hero content', async ({ page }) => {
     await page.goto('/');
 
-    // Check for features section
-    const features = page.locator('.features, section:has-text("Features"), section:has-text("How it works")');
+    // Validate hero section and description exist (features section removed)
+    const hero = page.locator('.hero');
+    await expect(hero).toBeVisible();
 
-    // Should have some informational content
-    const hasContent = await features.count() > 0 || await page.locator('main').isVisible();
-    expect(hasContent).toBe(true);
+    const description = page.locator('.description');
+    await expect(description).toBeVisible();
   });
 
   test('should have proper heading structure', async ({ page }) => {
