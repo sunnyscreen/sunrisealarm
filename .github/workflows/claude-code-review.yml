@@ -12,11 +12,10 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Skip if @claude is mentioned in PR title or body (let claude.yml handle those cases)
+    if: |
+      !contains(github.event.pull_request.title, '@claude') &&
+      (github.event.pull_request.body == null || !contains(github.event.pull_request.body, '@claude'))
 
     runs-on: ubuntu-latest
     permissions:
