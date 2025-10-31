@@ -105,13 +105,8 @@ jobs:
       id: wait
       run: |
         branch=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
-        if [ "$branch" = "main" ]; then
-          PREVIEW_URL="https://sunnyscreen.art"
-          ENVIRONMENT="Production"
-        else
-          PREVIEW_URL="https://preview.sunnyscreen.art"
-          ENVIRONMENT="Preview"
-        fi
+        PREVIEW_URL="https://preview.sunnyscreen.art"
+        ENVIRONMENT="Preview"
         echo "Using preview URL: $PREVIEW_URL for branch: $branch"
         echo "deployment_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
         echo "deployment_environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
