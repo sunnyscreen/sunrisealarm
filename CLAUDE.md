@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Sunnyscreen** is a pure web-based sunrise alarm application that gradually brightens the screen to simulate a sunrise and wake users gently. The app runs in any modern web browser and includes:
 - Single-page web application for alarm configuration and display
 - Full-screen alarm animation with gradual brightness effect
-- Persistent alarm scheduling with day-of-week selection
+- Persistent alarm scheduling (next occurrence only)
 - Wake Lock API to prevent screen dimming during alarm
 - No installation required - works instantly in the browser
 
@@ -19,7 +19,6 @@ The app is a self-contained web application (`app.html`):
 **Configuration Interface**:
 - Wake time selection (HH:MM format)
 - Sunrise duration (1-60 minutes)
-- Day-of-week selection (0=Sunday, 6=Saturday)
 - Test alarm button for immediate preview
 - Power management settings modal
 
@@ -36,9 +35,9 @@ The app is a self-contained web application (`app.html`):
 - No backend required - fully client-side application
 
 ### Alarm Scheduling Logic
-The app calculates the next valid alarm time by:
-1. Checking if today is a valid day AND time hasn't passed
-2. If not, advancing to the next valid day of week
+The app calculates the next alarm time by:
+1. Checking if the wake time has passed today
+2. If time has passed, scheduling for tomorrow
 3. Using `setTimeout` to trigger the alarm overlay at the calculated time
 4. Automatically rescheduling after each alarm fires
 5. Persisting state across page refreshes via localStorage
@@ -140,8 +139,7 @@ This is requested when alarm starts and released when it ends. If not supported,
 ### Time Handling
 - All times internally use JavaScript `Date` objects
 - User-facing times are in HH:MM format (24-hour)
-- Days of week are 0-indexed arrays (0=Sunday, 6=Saturday)
-- `calculateNextAlarm()` handles edge cases like midnight crossing and week boundaries
+- `calculateNextAlarm()` handles edge cases like midnight crossing (schedules for today if time hasn't passed, otherwise tomorrow)
 
 ## File Structure Notes
 

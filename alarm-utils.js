@@ -6,27 +6,18 @@
 /**
  * Calculates the next alarm time based on configuration
  * @param {string} wakeTime - Time in HH:MM format
- * @param {number[]} daysOfWeek - Array of valid days (0=Sunday, 6=Saturday)
  * @param {Date} currentDate - Current date/time (defaults to now)
  * @returns {Date} The next scheduled alarm time
  */
-function calculateNextAlarm(wakeTime, daysOfWeek, currentDate = new Date()) {
+function calculateNextAlarm(wakeTime, currentDate = new Date()) {
   const [hours, minutes] = wakeTime.split(':').map(Number);
 
   let nextAlarm = new Date(currentDate);
   nextAlarm.setHours(hours, minutes, 0, 0);
 
-  // Check if today is valid and time hasn't passed
-  const todayIsValid = daysOfWeek.includes(nextAlarm.getDay());
-  const timeHasPassed = nextAlarm <= currentDate;
-
-  // If time has passed today OR today is not a valid day, start looking from tomorrow
-  if (timeHasPassed || !todayIsValid) {
+  // If time has passed today, schedule for tomorrow
+  if (nextAlarm <= currentDate) {
     nextAlarm.setDate(nextAlarm.getDate() + 1);
-    // Find next valid day of week
-    while (!daysOfWeek.includes(nextAlarm.getDay())) {
-      nextAlarm.setDate(nextAlarm.getDate() + 1);
-    }
   }
 
   return nextAlarm;
@@ -64,17 +55,6 @@ function isValidDuration(duration) {
 }
 
 /**
- * Validates days of week array
- * @param {number[]} days - Array of day numbers
- * @returns {boolean} True if valid
- */
-function isValidDaysOfWeek(days) {
-  return Array.isArray(days) &&
-         days.length > 0 &&
-         days.every(day => typeof day === 'number' && day >= 0 && day <= 6);
-}
-
-/**
  * Default configuration
  * @returns {Object} Default config object
  */
@@ -82,8 +62,7 @@ function getDefaultConfig() {
   return {
     enabled: false,
     wakeTime: '07:00',
-    duration: 30,
-    daysOfWeek: [1, 2, 3, 4, 5] // Monday-Friday
+    duration: 30
   };
 }
 
@@ -111,10 +90,7 @@ function validateAndFixConfig(config) {
     fixed.duration = config.duration;
   }
 
-  // Validate daysOfWeek
-  if (isValidDaysOfWeek(config.daysOfWeek)) {
-    fixed.daysOfWeek = config.daysOfWeek;
-  }
+  // Note: daysOfWeek property in existing configs is ignored (migrated to "every day" behavior)
 
   return fixed;
 }
@@ -126,7 +102,6 @@ if (typeof module !== 'undefined' && module.exports) {
     calculateSunriseStart,
     isValidTimeFormat,
     isValidDuration,
-    isValidDaysOfWeek,
     getDefaultConfig,
     validateAndFixConfig
   };

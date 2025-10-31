@@ -4,8 +4,7 @@
 
 const {
   isValidTimeFormat,
-  isValidDuration,
-  isValidDaysOfWeek
+  isValidDuration
 } = require('../alarm-utils');
 
 describe('Config Validation', () => {
@@ -50,20 +49,6 @@ describe('Config Validation', () => {
 
     test('invalid duration 30.5', () => {
       expect(isValidDuration(30.5)).toBe(false);
-    });
-  });
-
-  describe('Days of week validation', () => {
-    test('valid days array [1,2,3,4,5]', () => {
-      expect(isValidDaysOfWeek([1, 2, 3, 4, 5])).toBe(true);
-    });
-
-    test('invalid day 7', () => {
-      expect(isValidDaysOfWeek([1, 2, 7])).toBe(false);
-    });
-
-    test('invalid day -1', () => {
-      expect(isValidDaysOfWeek([1, 2, -1])).toBe(false);
     });
   });
 });

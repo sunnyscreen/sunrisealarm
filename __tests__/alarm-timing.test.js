@@ -14,10 +14,9 @@ describe('Alarm Timing and Scheduling', () => {
       // Test case: 7:00 AM wake time, 30 minute duration
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5];
       const currentDate = new Date('2024-10-07T06:00:00'); // Monday 6 AM
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Sunrise should start at 6:30 AM (30 min before 7:00 AM)
@@ -34,7 +33,7 @@ describe('Alarm Timing and Scheduling', () => {
       const duration = 1;
       const currentDate = new Date('2024-10-07T07:00:00');
 
-      const alarmTime = calculateNextAlarm(wakeTime, [1, 2, 3, 4, 5], currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Should start at 7:59 AM
@@ -50,7 +49,7 @@ describe('Alarm Timing and Scheduling', () => {
       const duration = 60;
       const currentDate = new Date('2024-10-07T06:00:00');
 
-      const alarmTime = calculateNextAlarm(wakeTime, [1, 2, 3, 4, 5], currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Should start at 7:00 AM (1 hour before)
@@ -67,7 +66,7 @@ describe('Alarm Timing and Scheduling', () => {
       const duration = 30;
       const currentDate = new Date('2024-10-07T23:00:00'); // 11 PM
 
-      const alarmTime = calculateNextAlarm(wakeTime, [0, 1, 2, 3, 4, 5, 6], currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Verify sunrise starts 30 minutes before alarm
@@ -87,9 +86,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T06:00:00');
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Monday
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       const msUntilSunrise = sunriseStart - currentDate;
@@ -104,9 +102,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T08:00:00'); // Monday 8 AM
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       const msUntilSunrise = sunriseStart - currentDate;
@@ -126,9 +123,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T06:55:00');
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Alarm should be scheduled for today (wake time hasn't passed)
@@ -146,23 +142,23 @@ describe('Alarm Timing and Scheduling', () => {
       expect(msUntilSunrise).toBeLessThan(0); // Sunrise time is in the past
     });
 
-    test('should handle scheduling across weekend', () => {
-      // Friday 8 PM, weekday-only alarm
+    test('should handle scheduling for next day', () => {
+      // Friday 8 PM, alarm for next day
       const currentDate = new Date('2024-10-11T20:00:00'); // Friday 8 PM
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5]; // Mon-Fri only
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
-      // Should schedule for Monday 6:30 AM
-      expect(alarmTime.getDay()).toBe(1); // Monday
+      // Should schedule for Saturday 7:00 AM (next day)
+      expect(alarmTime.getDate()).toBe(currentDate.getDate() + 1);
+      expect(alarmTime.getHours()).toBe(7);
       expect(sunriseStart.getHours()).toBe(6);
       expect(sunriseStart.getMinutes()).toBe(30);
 
       const hoursUntilSunrise = (sunriseStart - currentDate) / (60 * 60 * 1000);
-      expect(hoursUntilSunrise).toBeCloseTo(58.5, 1); // ~58.5 hours (Fri 8PM to Mon 6:30AM)
+      expect(hoursUntilSunrise).toBeCloseTo(10.5, 1); // ~10.5 hours (Fri 8PM to Sat 6:30AM)
     });
   });
 
@@ -171,9 +167,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T06:00:00');
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Sunrise start must be in the future
@@ -191,7 +186,7 @@ describe('Alarm Timing and Scheduling', () => {
 
       scenarios.forEach(({ wakeTime, duration }) => {
         const currentDate = new Date('2024-10-07T00:00:00');
-        const alarmTime = calculateNextAlarm(wakeTime, [1, 2, 3, 4, 5, 6, 0], currentDate);
+        const alarmTime = calculateNextAlarm(wakeTime, currentDate);
         const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
         const actualDuration = (alarmTime - sunriseStart) / (60 * 1000);
@@ -203,9 +198,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T06:58:00');
       const wakeTime = '07:00';
       const duration = 1;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Should start at 6:59
@@ -221,9 +215,8 @@ describe('Alarm Timing and Scheduling', () => {
       const currentDate = new Date('2024-10-07T06:00:00');
       const wakeTime = '08:00';
       const duration = 60;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
-      const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       // Should start at 7:00
@@ -241,7 +234,7 @@ describe('Alarm Timing and Scheduling', () => {
       const duration = 30;
       const currentDate = new Date('2024-10-07T06:00:00.000');
 
-      const alarmTime = calculateNextAlarm(wakeTime, [1, 2, 3, 4, 5], currentDate);
+      const alarmTime = calculateNextAlarm(wakeTime, currentDate);
       const sunriseStart = calculateSunriseStart(alarmTime, duration);
 
       const diffMs = alarmTime - sunriseStart;
@@ -253,13 +246,12 @@ describe('Alarm Timing and Scheduling', () => {
     test('should not drift due to repeated calculations', () => {
       const wakeTime = '07:00';
       const duration = 30;
-      const daysOfWeek = [1, 2, 3, 4, 5];
 
       // Calculate multiple times
       const results = [];
       for (let i = 0; i < 10; i++) {
         const currentDate = new Date('2024-10-07T06:00:00');
-        const alarmTime = calculateNextAlarm(wakeTime, daysOfWeek, currentDate);
+        const alarmTime = calculateNextAlarm(wakeTime, currentDate);
         const sunriseStart = calculateSunriseStart(alarmTime, duration);
         results.push(sunriseStart.getTime());
       }
