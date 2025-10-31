@@ -272,29 +272,6 @@
             margin-top: 2rem;
         }
 
-        .nav-header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .nav-header a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-
-        .nav-header a:hover {
-            color: #5568d3;
-        }
 
         .no-data {
             text-align: center;
@@ -507,10 +484,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="nav-header">
-            <a href="/">← Back to Home</a>
-        </div>
-
         <h1>Test Dashboard</h1>
 
         <div style="text-align: center; margin-bottom: 2rem;">
@@ -676,11 +649,11 @@
                 return;
             }
 
-            let html = '';
             let totalTests = 0;
             let passedTests = 0;
             let failedTests = 0;
             let latestCompletionTime = null;
+            const testItems = []; // Array to collect all test items
 
             // Parse Playwright results structure
             function processSpecs(specs, suiteName) {
@@ -777,18 +750,22 @@
                             `;
                         }
 
-                        html += `
-                            <div class="test-item ${passed ? 'passed' : 'failed'}">
-                                <div class="test-item-title">${spec.title}</div>
-                                <div class="test-item-duration">
-                                    ${formatDuration(result.duration)} - ${suiteName} [${projectInfo}]
+                        // Store test item with its status and HTML
+                        testItems.push({
+                            passed: passed,
+                            html: `
+                                <div class="test-item ${passed ? 'passed' : 'failed'}">
+                                    <div class="test-item-title">${spec.title}</div>
+                                    <div class="test-item-duration">
+                                        ${formatDuration(result.duration)} - ${suiteName} [${projectInfo}]
+                                    </div>
+                                    ${timestamp ? `<div class="test-timestamp">Run at: ${timestamp}</div>` : ''}
+                                    ${!passed && errorMsg ? `<div style="color: #991b1b; font-size: 0.875rem; margin-top: 0.5rem; font-family: monospace;">${errorMsg}</div>` : ''}
+                                    ${attachmentsHtml}
+                                    ${analysisHtml}
                                 </div>
-                                ${timestamp ? `<div class="test-timestamp">Run at: ${timestamp}</div>` : ''}
-                                ${!passed && errorMsg ? `<div style="color: #991b1b; font-size: 0.875rem; margin-top: 0.5rem; font-family: monospace;">${errorMsg}</div>` : ''}
-                                ${attachmentsHtml}
-                                ${analysisHtml}
-                            </div>
-                        `;
+                            `
+                        });
                     }
                 });
             }
@@ -810,6 +787,15 @@
             }
 
             data.suites.forEach(suite => processSuite(suite));
+
+            // Sort test items: failed tests first, then passed tests
+            testItems.sort((a, b) => {
+                if (a.passed === b.passed) return 0;
+                return a.passed ? 1 : -1; // Failed tests (false) come before passed tests (true)
+            });
+
+            // Build HTML from sorted test items
+            let html = testItems.map(item => item.html).join('');
 
             // Add timestamp at the bottom
             if (latestCompletionTime) {
