@@ -306,6 +306,7 @@ jobs:
       contents: write
       pull-requests: write
       checks: write
+      statuses: write
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/preview' &&
