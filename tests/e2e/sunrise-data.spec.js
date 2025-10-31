@@ -22,7 +22,7 @@ test.describe('Sunrise Data Table', () => {
     const apiKeyInput = page.locator('#apiKey');
     await expect(apiKeyInput).toBeVisible();
     await expect(apiKeyInput).toHaveAttribute('type', 'password');
-    await expect(apiKeyInput).toHaveAttribute('placeholder', 'sk-...');
+    await expect(apiKeyInput).toHaveAttribute('placeholder', 'sk-ant-...');
   });
 
   test('should display generate data button', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Sunrise Data Table', () => {
     await generateBtn.click();
 
     // Should show error message
-    await expect(statusDiv).toContainText('Please enter your OpenAI API key');
+    await expect(statusDiv).toContainText('Please enter your Anthropic API key');
   });
 
   test('should persist API key in localStorage', async ({ page }) => {

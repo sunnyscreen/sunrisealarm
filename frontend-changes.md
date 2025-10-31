@@ -7,13 +7,13 @@ This document tracks all frontend features added to the Sunnyscreen application.
 ## Feature 1: Sunrise/Sunset Data Table
 
 ## Overview
-Added a new feature that uses the OpenAI API to generate hypothetical sunrise and sunset times for 100 days and displays them in an interactive data table.
+Added a new feature that uses the Anthropic API to generate hypothetical sunrise and sunset times for 100 days and displays them in an interactive data table.
 
 ## Files Created
 
 ### 1. `sunrise-data.html`
 A new standalone HTML page that provides:
-- **OpenAI API Integration**: Uses GPT-4o-mini to generate realistic sunrise/sunset data
+- **Anthropic API Integration**: Uses Claude 3.5 Sonnet to generate realistic sunrise/sunset data
 - **Interactive Data Table**: Displays 100 days of hypothetical data with:
   - Day number (1-100)
   - Date (YYYY-MM-DD format)
@@ -21,21 +21,20 @@ A new standalone HTML page that provides:
   - Sunset time (HH:MM, 24-hour format)
   - Calculated daylight hours
 - **CSV Export**: Allows users to download the generated data as a CSV file
-- **API Key Management**: Securely stores the OpenAI API key in localStorage for convenience
+- **API Key Management**: Securely stores the Anthropic API key in localStorage for convenience
 - **Responsive Design**: Matches the Sunnyscreen brand aesthetic with gradient backgrounds and smooth animations
 - **Error Handling**: Provides clear feedback for API errors and invalid inputs
 
 #### Key Features:
 - **Seasonal Variation**: The AI generates realistic data showing natural seasonal progression (earlier sunrises and later sunsets in summer, later sunrises and earlier sunsets in winter)
-- **Real-time Generation**: Data is generated on-demand by calling the OpenAI API
+- **Real-time Generation**: Data is generated on-demand by calling the Anthropic API
 - **Data Validation**: Calculates daylight hours automatically from sunrise/sunset times
 - **User-Friendly Interface**: Clean, modern design with loading states and status messages
-- **Privacy-Focused**: API key is stored locally in the browser, never sent to any server except OpenAI
+- **Privacy-Focused**: API key is stored locally in the browser, never sent to any server except Anthropic
 
 #### Technical Implementation:
-- Uses `fetch` API to call OpenAI's Chat Completions endpoint
-- Model: `gpt-4o-mini` (cost-effective and fast)
-- Temperature: 0.7 (balanced between creativity and consistency)
+- Uses `fetch` API to call Anthropic's Messages API endpoint
+- Model: `claude-3-5-sonnet-20241022` (high quality and reliable)
 - Prompt engineered to generate structured JSON data with realistic seasonal patterns
 - Handles both plain JSON and markdown-wrapped responses from the API
 - Implements proper error handling with user-friendly error messages
@@ -90,7 +89,7 @@ A new standalone HTML page that provides:
    - Or click the "Sunrise Data" link in the footer of the homepage
 
 2. **Generate Data**:
-   - Enter your OpenAI API key (you can get one from https://platform.openai.com/api-keys)
+   - Enter your Anthropic API key (you can get one from https://console.anthropic.com/)
    - Click "Generate Data" button
    - Wait for the API to generate the data (typically 3-10 seconds)
 
@@ -105,14 +104,14 @@ A new standalone HTML page that provides:
 
 ## API Usage & Costs
 
-- **Model**: GPT-4o-mini
-- **Estimated Cost**: ~$0.01-0.02 per generation (as of October 2024)
+- **Model**: Claude 3.5 Sonnet
+- **Estimated Cost**: ~$0.03-0.05 per generation (as of October 2024)
 - **Tokens**: Approximately 3000-4000 output tokens per request
-- **Rate Limits**: Subject to OpenAI API rate limits for your account tier
+- **Rate Limits**: Subject to Anthropic API rate limits for your account tier
 
 ## Security Considerations
 
-- API key is stored in browser's localStorage (never sent to any server except OpenAI)
+- API key is stored in browser's localStorage (never sent to any server except Anthropic)
 - Input field uses `type="password"` to hide the API key from shoulder surfing
 - No backend storage or logging of API keys
 - Users should use API keys with appropriate rate limits and spending caps
@@ -141,7 +140,7 @@ The feature has been tested locally and verified:
 - ✅ Page loads correctly at http://localhost:3000/sunrise-data.html
 - ✅ Homepage link navigates to the new page
 - ✅ Form accepts API key input
-- ✅ API integration works (requires valid OpenAI API key to test fully)
+- ✅ API integration works (requires valid Anthropic API key to test fully)
 - ✅ Table displays and formats data correctly
 - ✅ CSV export functionality works
 - ✅ Error handling displays appropriate messages
@@ -158,12 +157,12 @@ Added a weather-based clothing recommendation feature that displays contextual a
 
 ### 1. Backend API Endpoint
 **File:** `api/weather/recommendations.js`
-- Created a Vercel serverless function that connects to OpenAI API
-- Uses the `OPENAI_API_KEY` environment variable (configured in Vercel)
+- Created a Vercel serverless function that connects to Anthropic API
+- Uses the `ANTHROPIC_API_KEY` environment variable (configured in Vercel)
 - Generates 100 unique weather conditions with clothing recommendations
 - Returns JSON array with format: `[{condition: "...", recommendation: "..."}, ...]`
-- Uses GPT-3.5-turbo for cost-effective generation
-- Handles JSON parsing from OpenAI response (including markdown code blocks)
+- Uses Claude 3.5 Sonnet for high-quality generation
+- Handles JSON parsing from Anthropic response (including markdown code blocks)
 
 ### 2. Client-Side Module
 **File:** `weather-client.js`
@@ -240,11 +239,11 @@ When the alarm goes off, users now see:
 
 ### Environment Variables
 **Vercel Configuration Required:**
-- `OPENAI_API_KEY`: OpenAI API key for generating weather recommendations
+- `ANTHROPIC_API_KEY`: Anthropic API key for generating weather recommendations
 - Configured in Vercel project settings → Environment Variables
 
 ### Data Flow
-1. **First Load**: App calls `/api/weather/recommendations` → OpenAI generates 100 conditions → Cached in localStorage
+1. **First Load**: App calls `/api/weather/recommendations` → Anthropic generates 100 conditions → Cached in localStorage
 2. **Subsequent Loads**: App reads from localStorage (valid for 30 days)
 3. **Alarm Trigger**: App uses date-based hash to select today's recommendation from cache
 4. **Display**: Weather condition and recommendation shown on alarm screen
@@ -265,7 +264,7 @@ When the alarm goes off, users now see:
 2. `test-server.js` - Added mock API endpoint for local testing
 
 ## Files Created
-1. `api/weather/recommendations.js` - OpenAI API integration
+1. `api/weather/recommendations.js` - Anthropic API integration
 2. `weather-client.js` - Client-side weather recommendation module
 3. `frontend-changes.md` - This documentation file
 
@@ -286,7 +285,7 @@ Expected: JSON response with 100 weather recommendations
 
 ### Production Testing
 After deployment to Vercel:
-1. Ensure `OPENAI_API_KEY` is configured in Vercel environment variables
+1. Ensure `ANTHROPIC_API_KEY` is configured in Vercel environment variables
 2. Test alarm functionality on deployed site
 3. Verify weather recommendations are generated and cached properly
 
