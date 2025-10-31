@@ -7,6 +7,7 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
+!test-results/jest-results.json
 !test-results/playwright-results.json
 !test-results/failure-analysis.md
 !test-results/**/video.webm
