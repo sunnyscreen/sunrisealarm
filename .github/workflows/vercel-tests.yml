@@ -16,6 +16,7 @@ jobs:
       contents: read
       pull-requests: write
       checks: write
+      statuses: write
 
     steps:
     - name: Checkout code
@@ -129,11 +130,45 @@ jobs:
             status.context.includes('unit')
           );
           
+          // If no status found, wait a bit for unit tests to complete
           if (!unitTestStatus) {
-            core.warning('No unit test status found. This may be the first commit or unit tests may still be running.');
-            core.info('Will proceed with E2E tests, but recommend ensuring unit tests pass first.');
-            core.setOutput('passed', 'unknown');
-            return;
+            core.warning('No unit test status found. Waiting for unit tests to complete...');
+            await new Promise(resolve => setTimeout(resolve, 15000));
+            
+            const { data: retryStatuses } = await github.rest.repos.listCommitStatusesForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: commitSha
+            });
+            
+            const retryStatus = retryStatuses.find(status => 
+              status.context === 'tests/unit' || 
+              status.context === 'Unit Tests' ||
+              status.context.includes('unit')
+            );
+            
+            if (!retryStatus) {
+              core.setFailed('Unit test status not found after waiting. Cannot proceed with E2E tests without confirming unit tests passed.');
+              core.setOutput('passed', 'false');
+              return;
+            }
+            
+            // Use the retried status for further checks
+            const unitTestStatusFinal = retryStatus;
+            
+            if (unitTestStatusFinal.state === 'failure' || unitTestStatusFinal.state === 'error') {
+              core.setFailed(`Unit tests failed. Status: ${unitTestStatusFinal.state}. Cannot proceed with E2E tests.`);
+              core.setOutput('passed', 'false');
+              return;
+            } else if (unitTestStatusFinal.state === 'success') {
+              core.info('✅ Unit tests passed. Proceeding with E2E tests.');
+              core.setOutput('passed', 'true');
+              return;
+            } else {
+              core.setFailed(`Unit tests are still ${unitTestStatusFinal.state}. Cannot proceed with E2E tests until unit tests complete.`);
+              core.setOutput('passed', 'false');
+              return;
+            }
           }
           
           core.info(`Unit test status: ${unitTestStatus.state} - ${unitTestStatus.description || 'No description'}`);
@@ -145,36 +180,54 @@ jobs:
             core.info('✅ Unit tests passed. Proceeding with E2E tests.');
             core.setOutput('passed', 'true');
           } else if (unitTestStatus.state === 'pending') {
-            core.warning('Unit tests are still pending. Waiting a moment and checking again...');
+            core.warning('Unit tests are still pending. Waiting for them to complete...');
             
-            // Wait a bit and check again
-            await new Promise(resolve => setTimeout(resolve, 10000));
+            // Wait and retry with exponential backoff (up to 30 seconds total)
+            let waitTime = 10000;
+            let maxRetries = 3;
+            let lastStatus = unitTestStatus;
             
-            const { data: updatedStatuses } = await github.rest.repos.listCommitStatusesForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: commitSha
-            });
-            
-            const updatedStatus = updatedStatuses.find(status => 
-              status.context === 'tests/unit' || 
-              status.context === 'Unit Tests' ||
-              status.context.includes('unit')
-            );
-            
-            if (updatedStatus && (updatedStatus.state === 'failure' || updatedStatus.state === 'error')) {
-              core.setFailed(`Unit tests failed after wait. Status: ${updatedStatus.state}`);
-              core.setOutput('passed', 'false');
-            } else if (updatedStatus && updatedStatus.state === 'success') {
-              core.info('✅ Unit tests passed after wait. Proceeding with E2E tests.');
-              core.setOutput('passed', 'true');
-            } else {
-              core.warning('Unit tests still pending after wait. Proceeding with E2E tests but unit tests may still be running.');
-              core.setOutput('passed', 'unknown');
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              
+              const { data: updatedStatuses } = await github.rest.repos.listCommitStatusesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: commitSha
+              });
+              
+              const updatedStatus = updatedStatuses.find(status => 
+                status.context === 'tests/unit' || 
+                status.context === 'Unit Tests' ||
+                status.context.includes('unit')
+              );
+              
+              if (!updatedStatus) {
+                continue; // Keep waiting
+              }
+              
+              lastStatus = updatedStatus;
+              
+              if (updatedStatus.state === 'failure' || updatedStatus.state === 'error') {
+                core.setFailed(`Unit tests failed after wait. Status: ${updatedStatus.state}`);
+                core.setOutput('passed', 'false');
+                return;
+              } else if (updatedStatus.state === 'success') {
+                core.info('✅ Unit tests passed after wait. Proceeding with E2E tests.');
+                core.setOutput('passed', 'true');
+                return;
+              }
+              
+              // Still pending, continue waiting
+              core.info(`Unit tests still pending (attempt ${attempt + 1}/${maxRetries})...`);
             }
+            
+            // After max retries, still pending or unknown
+            core.setFailed(`Unit tests did not complete after ${maxRetries * waitTime / 1000} seconds. Cannot proceed with E2E tests until unit tests complete.`);
+            core.setOutput('passed', 'false');
           } else {
-            core.warning(`Unknown unit test status: ${unitTestStatus.state}. Proceeding with E2E tests.`);
-            core.setOutput('passed', 'unknown');
+            core.setFailed(`Unknown or unexpected unit test status: ${unitTestStatus.state}. Cannot proceed with E2E tests.`);
+            core.setOutput('passed', 'false');
           }
 
     - name: Setup Node.js
