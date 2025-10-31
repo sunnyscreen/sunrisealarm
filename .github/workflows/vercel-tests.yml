@@ -261,7 +261,7 @@ jobs:
               state: 'failure',
               target_url: '${{ github.event.deployment_status.target_url }}',
               description: 'E2E tests failed on preview deployment',
-              context: 'tests/preview-deployment'
+              context: 'tests/e2e'
             });
             
             core.info(`Updated PR #${pr.number} status to failure`);
@@ -363,7 +363,7 @@ jobs:
             state: 'success',
             target_url: '${{ github.event.deployment_status.target_url }}',
             description: 'All tests passed on preview deployment',
-            context: 'tests/preview-deployment'
+            context: 'tests/e2e'
           });
 
     - name: Auto-merge PR
