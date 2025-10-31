@@ -548,24 +548,29 @@
             // Load failure analysis first (will be used for inline display)
             const analysisMap = await loadFailureAnalysis();
 
-            // Load Jest results
+            // Load Jest results from GitHub Pages
+            // GitHub Pages URL: https://sunnyscreen.github.io/sunrisealarm/jest-results.json
             try {
-                const jestResponse = await fetch('test-results/jest-results.json');
+                const jestResponse = await fetch('https://sunnyscreen.github.io/sunrisealarm/jest-results.json');
                 if (jestResponse.ok) {
                     const jestData = await jestResponse.json();
                     displayJestResults(jestData);
-                } else {
+                } else if (jestResponse.status === 404) {
                     document.getElementById('jest-results').innerHTML =
                         '<div class="no-data">No unit test results available. Run <code>npm test</code> to generate results.</div>';
+                } else {
+                    document.getElementById('jest-results').innerHTML =
+                        '<div class="error-message">Failed to load unit test results: HTTP ' + jestResponse.status + '</div>';
                 }
             } catch (error) {
                 document.getElementById('jest-results').innerHTML =
                     '<div class="error-message">Failed to load unit test results: ' + error.message + '</div>';
             }
 
-            // Load Playwright results
+            // Load Playwright results from GitHub Pages
+            // GitHub Pages URL: https://sunnyscreen.github.io/sunrisealarm/playwright-results.json
             try {
-                const playwrightResponse = await fetch('test-results/playwright-results.json');
+                const playwrightResponse = await fetch('https://sunnyscreen.github.io/sunrisealarm/playwright-results.json');
                 if (playwrightResponse.ok) {
                     try {
                         const playwrightData = await playwrightResponse.json();
@@ -574,9 +579,12 @@
                         document.getElementById('playwright-results').innerHTML =
                             '<div class="no-data">E2E test results are not available on production. They are generated during CI runs.</div>';
                     }
-                } else {
+                } else if (playwrightResponse.status === 404) {
                     document.getElementById('playwright-results').innerHTML =
                         '<div class="no-data">E2E test results are generated during CI/CD runs and are not deployed to production. Check the <a href="https://github.com/sunnyscreen/sunrisealarm/actions" style="color: #667eea; text-decoration: underline;">GitHub Actions</a> page for the latest test results.</div>';
+                } else {
+                    document.getElementById('playwright-results').innerHTML =
+                        '<div class="error-message">Failed to load E2E test results: HTTP ' + playwrightResponse.status + '</div>';
                 }
             } catch (error) {
                 document.getElementById('playwright-results').innerHTML =
