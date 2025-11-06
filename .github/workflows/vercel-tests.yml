@@ -5,6 +5,7 @@ on:
     branches: ['**']
   pull_request:
     branches: ['**']
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   # Run unit tests on every push and PR
@@ -284,6 +285,95 @@ jobs:
         path: test-results/
         retention-days: 30
 
+  # Deploy test results to GitHub Pages after tests complete
+  # Only deploy on main branch to comply with environment protection rules
+  deploy-test-results:
+    name: Deploy Test Results
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    # Run even if tests fail to deploy available results, but only on main branch
+    if: |
+      always() &&
+      needs.unit-tests.result != 'cancelled' &&
+      needs.e2e-tests.result != 'cancelled' &&
+      github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download unit test results artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: unit-test-results
+        path: test-results-pages/
+        if-no-files-found: ignore
+      continue-on-error: true
+
+    - name: Download E2E test results artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: e2e-test-results
+        path: test-results-pages/
+        if-no-files-found: ignore
+      continue-on-error: true
+
+    - name: Prepare test results for Pages
+      run: |
+        echo "📦 Preparing test results for GitHub Pages..."
+        mkdir -p test-results-pages
+        
+        # Find and copy Jest results
+        JEST_FILE=$(find test-results-pages -name "jest-results.json" -type f 2>/dev/null | head -1)
+        if [ -n "$JEST_FILE" ]; then
+          echo "✅ Found Jest results: $JEST_FILE"
+          cp "$JEST_FILE" test-results-pages/jest-results.json || true
+        elif [ -f "test-results-pages/test-results/jest-results.json" ]; then
+          cp test-results-pages/test-results/jest-results.json test-results-pages/jest-results.json
+          echo "✅ Copied Jest results (standard path)"
+        fi
+        
+        # Find and copy Playwright results
+        PLAYWRIGHT_FILE=$(find test-results-pages -name "playwright-results.json" -type f 2>/dev/null | head -1)
+        if [ -n "$PLAYWRIGHT_FILE" ]; then
+          echo "✅ Found Playwright results: $PLAYWRIGHT_FILE"
+          cp "$PLAYWRIGHT_FILE" test-results-pages/playwright-results.json || true
+        elif [ -f "test-results-pages/test-results/playwright-results.json" ]; then
+          cp test-results-pages/test-results/playwright-results.json test-results-pages/playwright-results.json
+          echo "✅ Copied Playwright results (standard path)"
+        fi
+        
+        # List files for debugging
+        echo "📁 Files in test-results-pages:"
+        find test-results-pages -type f | head -10 || echo "No files found"
+        
+        # Ensure we have at least one result file, or create empty JSON
+        if [ ! -f "test-results-pages/jest-results.json" ]; then
+          echo "{}" > test-results-pages/jest-results.json
+          echo "⚠️ Created empty Jest results file"
+        fi
+        if [ ! -f "test-results-pages/playwright-results.json" ]; then
+          echo "{}" > test-results-pages/playwright-results.json
+          echo "⚠️ Created empty Playwright results file"
+        fi
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: test-results-pages/
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
   # Promote to production after E2E tests pass on preview branch
   promote-to-production:
     name: Promote to Production (Auto-merge PR)
@@ -416,3 +506,94 @@ jobs:
         echo "✅ E2E tests passed on preview"
         echo "🚀 Auto-merged PR #${{ steps.find-pr.outputs.pr_number }}"
         echo "⏳ Vercel will now deploy to production (sunnyscreen.art)"
+
+  # Auto-merge feature branch PRs after tests pass
+  auto-merge-feature-branches:
+    name: Auto-merge Feature Branch PR
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+      statuses: write
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.unit-tests.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
+      !(github.event.pull_request.head.ref == 'preview' && github.event.pull_request.base.ref == 'main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Auto-merge PR
+      id: merge-pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const prBranch = context.payload.pull_request.head.ref;
+          
+          try {
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              commit_title: `Auto-merge after tests passed`,
+              commit_message: `All tests passed ✅
+
+          🤖 Automated by GitHub Actions`,
+              merge_method: 'merge'
+            });
+            
+            core.info(`✅ Successfully merged PR #${prNumber}`);
+            core.setOutput('branch_name', prBranch);
+            core.setOutput('merged', 'true');
+          } catch (error) {
+            if (error.status === 405) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
+              if (pr.merged) {
+                core.info(`PR #${prNumber} was already merged`);
+                core.setOutput('branch_name', prBranch);
+                core.setOutput('merged', 'true');
+              } else if (!pr.mergeable) {
+                core.setFailed(`PR #${prNumber} is not mergeable. Reasons: ${JSON.stringify(pr)}`);
+              } else {
+                throw error;
+              }
+            } else {
+              throw error;
+            }
+          }
+
+    - name: Delete merged branch
+      if: steps.merge-pr.outputs.merged == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const branchName = '${{ steps.merge-pr.outputs.branch_name }}';
+          
+          try {
+            await github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${branchName}`
+            });
+            core.info(`✅ Successfully deleted branch: ${branchName}`);
+          } catch (error) {
+            // Branch might already be deleted or protected, just log and continue
+            if (error.status === 422) {
+              core.info(`⚠️ Branch ${branchName} may already be deleted or cannot be deleted`);
+            } else {
+              core.warning(`Could not delete branch ${branchName}: ${error.message}`);
+            }
+          }
